@@ -5,24 +5,10 @@ const gamesDatabase = [
     {
         id: "game_01",
         title: "Classic Mario Flash",
-        image: "assets/images/IMAGE 01.PNG",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNQhaKAk5O_B0FO36Or9GF24xKsqXXYZBeGqUZ37KSmg&s=10",
         type: "swf", // Options: "swf" or "iframe"
         src: "https://archive.org/download/decision-flash-game-series./decision.swf"
     },
-    {
-        id: "game_02",
-        title: "Retro Racer",
-        image: "assets/images/IMAGE 02.PNG",
-        type: "iframe",
-        src: "https://example.com/embed/retro-racer"
-    },
-    {
-        id: "game_03",
-        title: "Space Invaders",
-        image: "assets/images/IMAGE 03.PNG",
-        type: "swf",
-        src: "assets/games/game_03.swf"
-    }
     // You can add hundreds of games here following the exact same object structure.
 ];
 
