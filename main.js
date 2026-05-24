@@ -3,15 +3,16 @@
    ============================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-    initAdBlockDetection();   // أول شيء - الأهم
+    initAdBlockDetection();
     initAppBanner();
     initCounter();
     renderGames();
     initBgIcons();
-    initMascots();
+    NPCSystem.init();       // ← شخصيات الخلفية
     initScrollReveal();
-    initFilterBtns();
+    initCarousel();         // ← carousel بدل filters
     initDownloadBtns();
+    initFullscreen();       // ← fullscreen + landscape
 });
 
 /* =============================================
@@ -141,19 +142,13 @@ function initCounter() {
 /* =============================================
    RENDER GAMES GRID
    ============================================= */
-function renderGames(filter = 'all') {
+function renderGames() {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
     grid.innerHTML = '';
-
-    const list = filter === 'all'
-        ? gamesDatabase
-        : gamesDatabase.filter(g => g.category === filter);
-
-    list.forEach((game, idx) => {
+    gamesDatabase.forEach((game, idx) => {
         const card = document.createElement('div');
         card.className = 'game-card' + (game.isNew ? ' is-new' : '');
-        card.dataset.category = game.category || 'all';
 
         const img = document.createElement('img');
         img.src = game.image;
@@ -162,26 +157,41 @@ function renderGames(filter = 'all') {
         img.onerror = () => card.remove();
 
         card.appendChild(img);
-        card.addEventListener('click', () => openGame(game));
+        card.addEventListener('click', () => {
+            openGame(game);
+            NPCSystem.onGameClick(card);
+        });
         grid.appendChild(card);
 
-        setTimeout(() => {
-            if (card.parentNode) card.classList.add('visible');
-        }, idx * 55);
+        setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
     });
 }
 
 /* =============================================
-   FILTER BUTTONS
+   CAROUSEL (يمين/يسار)
    ============================================= */
-function initFilterBtns() {
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderGames(btn.dataset.filter);
-        });
+function initCarousel() {
+    const grid = document.getElementById('games-grid');
+    const prev = document.getElementById('carousel-prev');
+    const next = document.getElementById('carousel-next');
+    if (!grid || !prev || !next) return;
+
+    const scrollAmt = () => window.innerWidth * 0.75;
+
+    next.addEventListener('click', () => {
+        grid.scrollBy({ left: scrollAmt(), behavior: 'smooth' });
     });
+    prev.addEventListener('click', () => {
+        grid.scrollBy({ left: -scrollAmt(), behavior: 'smooth' });
+    });
+
+    // إخفاء/إظهار الأزرار حسب الحاجة
+    const updateBtns = () => {
+        prev.style.opacity = grid.scrollLeft > 10 ? '1' : '0.3';
+        next.style.opacity = grid.scrollLeft < grid.scrollWidth - grid.clientWidth - 10 ? '1' : '0.3';
+    };
+    grid.addEventListener('scroll', updateBtns);
+    updateBtns();
 }
 
 /* =============================================
@@ -199,6 +209,10 @@ function openGame(game) {
     overlay.style.display = 'flex';
     player.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+
+    // تقليب الشاشة على الهاتف
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isMobile) requestLandscape();
 
     let launched = false;
 
@@ -244,6 +258,7 @@ function openGame(game) {
         launched = false;
         overlay.style.display = 'flex';
         document.body.style.overflow = '';
+        releaseLandscape();
         document.removeEventListener('keydown', spaceHandler);
     };
 }
@@ -420,7 +435,7 @@ function initScrollReveal() {
    ALL DOWNLOAD BUTTONS
    ============================================= */
 function initDownloadBtns() {
-    const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk'; // ← ضع رابط APK هنا
+    const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
 
     const ids = ['download-btn', 'android-download-btn', 'banner-download-btn'];
     ids.forEach(id => {
@@ -428,19 +443,52 @@ function initDownloadBtns() {
         if (!btn) return;
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            if (APK_URL !== '#') {
-                window.location.href = APK_URL;
-            } else {
-                // تأثير مؤقت إذا لم يُضف الرابط بعد
-                const span = btn.querySelector('span') || btn;
-                const orig = span.textContent;
-                span.textContent = 'قريباً! 🎮';
-                btn.style.background = '#f1c40f';
-                setTimeout(() => {
-                    span.textContent = orig;
-                    btn.style.background = '';
-                }, 2000);
-            }
+            NPCSystem.onDownloadClick();
+            window.location.href = APK_URL;
         });
     });
+}
+
+/* =============================================
+   FULLSCREEN + LANDSCAPE (هاتف)
+   ============================================= */
+function initFullscreen() {
+    const fsBtn   = document.getElementById('fullscreen-btn');
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    if (!fsBtn) return;
+
+    // على الهاتف: أخفِ زر fullscreen (سيكون landscape تلقائي)
+    if (isMobile) {
+        fsBtn.style.display = 'none';
+    }
+
+    fsBtn.addEventListener('click', () => {
+        const player = document.getElementById('game-player');
+        if (!document.fullscreenElement) {
+            player.requestFullscreen?.();
+            fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+        } else {
+            document.exitFullscreen?.();
+            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+        }
+    });
+}
+
+/* تقليب الشاشة على الهاتف عند فتح اللعبة */
+function requestLandscape() {
+    try {
+        screen.orientation?.lock('landscape').catch(() => {});
+    } catch(e) {}
+}
+function releaseLandscape() {
+    try {
+        screen.orientation?.unlock();
+    } catch(e) {}
 }

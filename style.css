@@ -779,3 +779,70 @@ body {
 @keyframes slideUp {
     to{transform:translateY(-100%);opacity:0}
 }
+
+/* =============================================
+   v2.2 - Carousel + Fullscreen + Font Size
+   ============================================= */
+
+/* تكبير الخطوط */
+body { font-size: 16px; }
+.hero-tagline  { font-size: clamp(0.75rem, 2.5vw, 1rem) !important; }
+.hero-sub      { font-size: clamp(0.55rem, 1.8vw, 0.75rem) !important; }
+.section-title { font-size: clamp(0.85rem, 2.8vw, 1.2rem) !important; }
+.feature-card h3 { font-size: 0.65rem !important; }
+.feature-card p  { font-size: 0.55rem !important; }
+.android-info h2 { font-size: clamp(0.7rem, 2.2vw, 1rem) !important; }
+.android-info > p, .android-features li { font-size: 0.55rem !important; }
+
+/* Carousel Controls */
+.carousel-controls {
+    display: flex; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.carousel-btn {
+    font-family: var(--font); font-size: 1rem;
+    background: var(--surface); color: var(--yellow);
+    border: 2px solid var(--border); padding: 8px 18px;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 2px 0 #000;
+}
+.carousel-btn:hover {
+    background: var(--purple); border-color: var(--purple);
+    transform: translateY(-2px);
+}
+.carousel-btn:active { transform: translateY(1px); box-shadow: none; }
+
+/* Games grid - scroll horizontal على الهاتف */
+.games-grid {
+    overflow-x: auto;
+    flex-wrap: wrap !important;
+    scrollbar-width: thin;
+    scrollbar-color: var(--purple) var(--bg);
+}
+@media (max-width: 700px) {
+    .games-grid {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 10px;
+        padding-bottom: 8px;
+    }
+    .game-card {
+        flex: 0 0 110px;
+        height: 110px;
+        scroll-snap-align: start;
+    }
+}
+
+/* Player header buttons */
+.player-btns {
+    display: flex; align-items: center; gap: 8px;
+}
+.fullscreen-btn {
+    font-family: var(--font); font-size: 0.6rem;
+    background: #1a1a3a; color: var(--cyan);
+    border: 2px solid var(--cyan); padding: 6px 12px;
+    cursor: pointer; transition: all 0.2s;
+}
+.fullscreen-btn:hover { background: var(--cyan); color: #000; }
