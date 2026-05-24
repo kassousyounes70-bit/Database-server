@@ -1,84 +1,263 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" class="notranslate" translate="no">
+<html lang="ar" dir="rtl" class="notranslate" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Play classic retro games directly in your browser.">
-    <meta name="google" content="notranslate">
-    <title>NostaGames - Arcade Experience</title>
-    
+
+    <!-- ===== SEO PRIMARY ===== -->
+    <title>NostGames - العب ألعاب Flash الكلاسيكية على أندرويد مجاناً</title>
+    <meta name="description" content="NostGames - تطبيق أندرويد مجاني لتشغيل ألعاب Flash و Unity الكلاسيكية. العب Fireboy Watergirl، Papa's Games، Hobo، Jacksmith وأكثر من 30 لعبة أسطورية من طفولتك مباشرة على هاتفك بدون كمبيوتر.">
+    <meta name="keywords" content="ألعاب فلاش, العاب قديمة, flash games android, nostagames, تحميل العاب, العاب طفولة, fireboy watergirl, papa games, hobo game, jacksmith, earn to die, ألعاب بدون نت, محاكي فلاش, العاب مجانية, تطبيق العاب, retro games, classic flash games, العاب كلاسيكية, العاب أندرويد, تنزيل العاب">
+    <meta name="author" content="NostGames">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="language" content="Arabic">
+    <meta name="revisit-after" content="7 days">
+    <link rel="canonical" href="https://nostagames.vercel.app/">
+
+    <!-- ===== OPEN GRAPH (واتساب / فيسبوك / تيليجرام) ===== -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nostagames.vercel.app/">
+    <meta property="og:title" content="NostGames - عصر الفلاش الذهبي عاد! 🕹️">
+    <meta property="og:description" content="العب 30+ لعبة Flash كلاسيكية مباشرة على هاتفك الأندرويد. Fireboy، Papa's، Hobo وأكثر - مجاناً 100%!">
+    <meta property="og:image" content="https://nostagames.vercel.app/images/icon.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:locale" content="ar_AR">
+    <meta property="og:site_name" content="NostGames">
+
+    <!-- ===== TWITTER CARD ===== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NostGames - العب ألعاب Flash على أندرويد">
+    <meta name="twitter:description" content="30+ لعبة كلاسيكية مجاناً على هاتفك!">
+    <meta name="twitter:image" content="https://nostagames.vercel.app/images/icon.png">
+
+    <!-- ===== SCHEMA MARKUP (جوجل) ===== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "NostGames",
+      "description": "تطبيق أندرويد مجاني لتشغيل ألعاب Flash الكلاسيكية",
+      "url": "https://nostagames.vercel.app/",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Android",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "1250" },
+      "inLanguage": "ar"
+    }
+    </script>
+
+    <!-- ===== FAVICON ===== -->
+    <link rel="icon" type="image/png" href="images/icon.png">
+    <link rel="apple-touch-icon" href="images/icon.png">
+
+    <!-- ===== FONTS & ICONS ===== -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+
+    <!-- AdBlock bait في الـ head -->
+    <style class="adBanner" id="adStyleBait">.adBanner-check{display:block;height:1px;}</style>
 </head>
-<body class="crt-effect"> <div id="anti-adblock-bait" class="adBanner" style="position:absolute; width:1px; height:1px; top:-1000px; left:-1000px;"></div>
-    
-    <div id="adblock-warning" class="hidden">
-        <div class="warning-content">
-            <h2 data-i18n="adblockTitle">AdBlocker Detected</h2>
-            <p data-i18n="adblockMsg">Please disable your AdBlocker to play.</p>
+<body>
+
+    <!-- ===== ADBLOCK WALL (يحجب كل شيء) ===== -->
+    <div id="adblock-wall" class="adblock-wall hidden">
+        <div class="adblock-box">
+            <div class="adblock-icon">🚫</div>
+            <h2>تم اكتشاف مانع الإعلانات</h2>
+            <p>الإعلانات هي الطريقة الوحيدة لإبقاء الموقع مجانياً والاستمرار في توفير الألعاب.</p>
+            <p class="adblock-sub">يرجى تعطيل مانع الإعلانات ثم اضغط "متابعة"</p>
+            <div class="adblock-steps">
+                <div class="step"><span>1</span> افتح إضافة AdBlock في المتصفح</div>
+                <div class="step"><span>2</span> اضغط "تعطيل في هذا الموقع"</div>
+                <div class="step"><span>3</span> اضغط زر المتابعة أدناه</div>
+            </div>
+            <button id="adblock-continue-btn" class="adblock-btn">
+                <i class="fa-solid fa-check"></i> عطّلته، متابعة ▶
+            </button>
+            <p class="adblock-note">* الموقع والتطبيق مجانيان تماماً، الإعلانات فقط لدعم التطوير</p>
         </div>
     </div>
 
-    <div class="app-container">
-        
-        <div class="ad-slot top-ad">
-            <span class="ad-placeholder">مساحة إعلانية (علوي)</span>
+    <!-- ===== ADBLOCK BAIT ELEMENTS ===== -->
+    <div id="ab-bait1" class="adBanner ad-banner-check" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none;" aria-hidden="true"></div>
+    <div id="ab-bait2" class="adsbox" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none;" aria-hidden="true"></div>
+    <div id="ab-bait3" class="ad-placement" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;pointer-events:none;" aria-hidden="true"></div>
+
+    <!-- ===== FLOATING BG ===== -->
+    <div id="bg-icons-layer" aria-hidden="true"></div>
+    <div class="crt-overlay" aria-hidden="true"></div>
+
+    <div class="site-wrapper">
+
+        <!-- ===== APP ANNOUNCEMENT BANNER ===== -->
+        <div class="app-banner" id="app-banner">
+            <div class="app-banner-content">
+                <img src="images/icon.png" alt="NostGames" class="banner-icon" onerror="this.style.display='none'">
+                <div class="banner-text">
+                    <strong>📱 تطبيق NostGames للأندرويد متاح الآن!</strong>
+                    <span>العب بدون إنترنت · تحكم لمسي · مجاني 100%</span>
+                </div>
+                <a href="#" id="banner-download-btn" class="banner-btn">
+                    <i class="fa-solid fa-download"></i> تحميل مجاني
+                </a>
+                <button class="banner-close" id="banner-close" aria-label="إغلاق">✕</button>
+            </div>
         </div>
 
-        <header>
-            <h1 class="glitch-text" data-text="NOSTAGAMES">NOSTAGAMES</h1>
-            <p id="instruction-text" data-i18n="instruction">Please choose your game to play</p>
+        <!-- ===== TOP AD ===== -->
+        <div class="ad-slot ad-top" id="ad-top">
+            <!-- Google AdSense Code Here -->
+            <span class="ad-label">إعلان</span>
+        </div>
+
+        <!-- ===== HERO ===== -->
+        <header class="hero-section">
+            <div class="hero-content">
+                <img src="images/icon.png" alt="NostGames Logo" class="hero-logo" onerror="this.style.display='none'">
+                <div class="hero-text">
+                    <h1 class="glitch-title" data-text="NOSTAGAMES">NOSTAGAMES</h1>
+                    <p class="hero-tagline">⚡ عصر الفلاش الذهبي عاد! ⚡</p>
+                    <p class="hero-sub">العب 30+ لعبة كلاسيكية مباشرة على هاتفك الأندرويد</p>
+
+                    <!-- Android App CTA -->
+                    <div class="android-cta">
+                        <div class="android-badge">
+                            <i class="fa-brands fa-android"></i>
+                            <div>
+                                <span class="badge-small">متاح على</span>
+                                <span class="badge-big">أندرويد</span>
+                            </div>
+                        </div>
+                        <a href="#" id="download-btn" class="pixel-btn download-btn">
+                            <i class="fa-solid fa-mobile-screen"></i>
+                            <span>تحميل التطبيق مجاناً</span>
+                        </a>
+                    </div>
+
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <span class="stat-num" id="counter-num">0</span>
+                            <span class="stat-label">📥 تحميل</span>
+                        </div>
+                        <div class="stat-divider">|</div>
+                        <div class="stat">
+                            <span class="stat-num">30+</span>
+                            <span class="stat-label">🎮 لعبة</span>
+                        </div>
+                        <div class="stat-divider">|</div>
+                        <div class="stat">
+                            <span class="stat-num">4.8★</span>
+                            <span class="stat-label">⭐ تقييم</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </header>
 
-        <main class="content-wrapper">
-            
-            <aside class="ad-slot sidebar-ad">
-                <span class="ad-placeholder">مساحة إعلانية (جانبي)</span>
-            </aside>
+        <!-- ===== MAIN ===== -->
+        <main class="main-layout">
+            <aside class="ad-slot ad-sidebar"><span class="ad-label">إعلان</span></aside>
 
-            <section id="interactive-area">
-                <div id="icons-container"></div>
-                
-                <div id="game-player-container" class="hidden">
-                    <div id="game-overlay">
-                        <p data-i18n="clickToStart">Click Here or Press Space to Start</p>
-                    </div>
-                    <div id="game-canvas"></div>
-                    <button id="close-game-btn" data-i18n="closeGame">X Close Game</button>
+            <section class="games-section" id="games-section">
+                <h2 class="section-title">
+                    <span class="pixel-bracket">[</span> اختر لعبتك <span class="pixel-bracket">]</span>
+                </h2>
+                <div class="filter-bar">
+                    <button class="filter-btn active" data-filter="all">🎮 الكل</button>
+                    <button class="filter-btn" data-filter="action">⚔️ أكشن</button>
+                    <button class="filter-btn" data-filter="puzzle">🧩 مغامرة</button>
+                    <button class="filter-btn" data-filter="cooking">🍕 طبخ</button>
                 </div>
+                <div id="games-grid" class="games-grid"></div>
             </section>
+
+            <aside class="ad-slot ad-sidebar-right"><span class="ad-label">إعلان</span></aside>
         </main>
 
-        <section class="action-stage">
-            <div class="arcade-floor">
-                <div id="retro-mascot" class="running">
-                    <div class="eye left"></div>
-                    <div class="eye right"></div>
+        <!-- ===== GAME PLAYER ===== -->
+        <div id="game-player" class="game-player hidden">
+            <div class="player-header">
+                <span id="playing-title" class="playing-title"></span>
+                <button id="close-btn" class="close-btn"><i class="fa-solid fa-xmark"></i> إغلاق</button>
+            </div>
+            <div id="game-overlay" class="game-overlay">
+                <div class="overlay-content">
+                    <div class="overlay-icon">▶</div>
+                    <p>اضغط للبدء</p>
+                    <p class="overlay-hint">أو اضغط Space</p>
                 </div>
             </div>
-            
-            <div class="cta-section">
-                <a href="#" id="download-app-btn" class="btn-pixel-art">
-                    <i class="fa-solid fa-mobile-screen"></i> <span data-i18n="downloadApp">Download NOSTAGAMES App</span>
-                </a>
-                <div class="counter-container">
-                    <span data-i18n="downloads">Downloads:</span>
-                    <span id="download-counter">8,459,201</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="social-links">
-            <a href="#" class="social-icon telegram"><i class="fa-brands fa-telegram"></i></a>
-            <a href="#" class="social-icon facebook"><i class="fa-brands fa-facebook"></i></a>
-            <a href="#" class="social-icon instagram"><i class="fa-brands fa-instagram"></i></a>
-            <a href="#" class="social-icon whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
-        </section>
-
-        <div class="ad-slot bottom-ad">
-            <span class="ad-placeholder">مساحة إعلانية (سفلي)</span>
+            <div id="game-canvas" class="game-canvas"></div>
         </div>
+
+        <!-- ===== MASCOT STAGE ===== -->
+        <div class="mascot-stage" aria-hidden="true">
+            <div class="stage-floor"></div>
+            <div id="mascot-container" class="mascot-container"></div>
+            <div id="speech-bubble" class="speech-bubble hidden">
+                <span id="speech-text"></span>
+            </div>
+        </div>
+
+        <!-- ===== ANDROID APP SECTION ===== -->
+        <section class="android-section reveal">
+            <div class="android-section-content">
+                <div class="android-info">
+                    <h2>📱 حمّل تطبيق NostGames للأندرويد</h2>
+                    <p>استمتع بتجربة ألعاب Flash الكلاسيكية على هاتفك بميزات حصرية!</p>
+                    <ul class="android-features">
+                        <li><i class="fa-solid fa-check"></i> تشغيل بدون إنترنت (offline)</li>
+                        <li><i class="fa-solid fa-check"></i> تحكم لمسي محسّن خصيصاً للهاتف</li>
+                        <li><i class="fa-solid fa-check"></i> 30+ لعبة كلاسيكية جاهزة</li>
+                        <li><i class="fa-solid fa-check"></i> تحديثات مستمرة بألعاب جديدة</li>
+                        <li><i class="fa-solid fa-check"></i> مجاني 100% بدون اشتراك</li>
+                        <li><i class="fa-solid fa-check"></i> يعمل على جميع أجهزة أندرويد</li>
+                    </ul>
+                    <a href="#" id="android-download-btn" class="pixel-btn download-btn android-dl-btn">
+                        <i class="fa-brands fa-android"></i>
+                        <span>تحميل APK مجاناً</span>
+                    </a>
+                    <p class="apk-note">⚠️ قد تحتاج لتفعيل "مصادر غير معروفة" في إعدادات الأندرويد</p>
+                </div>
+                <div class="android-mockup">
+                    <img src="images/icon.png" alt="NostGames Android App" class="mockup-img" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== MID AD ===== -->
+        <div class="ad-slot ad-mid"><span class="ad-label">إعلان</span></div>
+
+        <!-- ===== FEATURES ===== -->
+        <section class="features-section">
+            <div class="features-grid">
+                <div class="feature-card reveal"><div class="feature-icon">⚡</div><h3>سريع وخفيف</h3><p>تشغيل فوري بدون انتظار</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">🎮</div><h3>30+ لعبة</h3><p>Flash و Unity كلاسيكية</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">📱</div><h3>أندرويد</h3><p>تحكم لمسي محسّن</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">🆓</div><h3>مجاني 100%</h3><p>بدون اشتراك أو تسجيل</p></div>
+            </div>
+        </section>
+
+        <!-- ===== SOCIAL ===== -->
+        <section class="social-section">
+            <h3 class="section-title" style="font-size:0.7rem;margin-bottom:16px;">[ تابعنا ]</h3>
+            <div class="social-links">
+                <a href="#" class="social-btn telegram"><i class="fa-brands fa-telegram"></i> تيليجرام</a>
+                <a href="#" class="social-btn facebook"><i class="fa-brands fa-facebook"></i> فيسبوك</a>
+                <a href="#" class="social-btn instagram"><i class="fa-brands fa-instagram"></i> انستقرام</a>
+                <a href="#" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
+            </div>
+        </section>
+
+        <!-- ===== BOTTOM AD ===== -->
+        <div class="ad-slot ad-bottom"><span class="ad-label">إعلان</span></div>
+
+        <footer class="site-footer">
+            <p>© 2025 NostGames · جميع الحقوق محفوظة</p>
+            <p class="footer-sub">صُنع بـ ❤️ لمحبي ألعاب الطفولة · تطبيق أندرويد مجاني</p>
+        </footer>
     </div>
 
     <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>

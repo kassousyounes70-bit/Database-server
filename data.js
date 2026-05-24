@@ -1,35 +1,135 @@
-// Database of all available games
-// Adhere to SoC: This file contains ONLY data, no logic.
+// =============================================
+//   NOSTAGAMES - GAMES DATABASE
+//   أضف ألعابك هنا بنفس الهيكل
+// =============================================
 
 const gamesDatabase = [
+    // ===== أضف ألعابك هنا =====
+    // كل لعبة تحتاج:
+    //   id:       معرّف فريد
+    //   image:    "images/IMAGE_01.png" أو رابط خارجي
+    //   type:     "swf" أو "iframe"
+    //   src:      مسار ملف اللعبة أو رابطها
+    //   category: "action" أو "cooking" أو "puzzle"
+
     {
         id: "game_01",
-        title: "Classic Mario Flash",
-        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNQhaKAk5O_B0FO36Or9GF24xKsqXXYZBeGqUZ37KSmg&s=10",
-        type: "swf", // Options: "swf" or "iframe"
-        src: "assets/games/earth-taken-2-158340d56.swf"
+        image: "images/IMAGE_01.png",
+        type: "swf",
+        src: "assets/games/game01.swf",
+        category: "action",
+        isNew: false
     },
-    // You can add hundreds of games here following the exact same object structure.
+    {
+        id: "game_02",
+        image: "images/IMAGE_02.png",
+        type: "swf",
+        src: "assets/games/game02.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_03",
+        image: "images/IMAGE_03.png",
+        type: "swf",
+        src: "assets/games/game03.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_04",
+        image: "images/IMAGE_04.png",
+        type: "swf",
+        src: "assets/games/game04.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_05",
+        image: "images/IMAGE_05.png",
+        type: "swf",
+        src: "assets/games/game05.swf",
+        category: "action",
+        isNew: false
+    },
+    {
+        id: "game_06",
+        image: "images/IMAGE_06.png",
+        type: "swf",
+        src: "assets/games/game06.swf",
+        category: "action",
+        isNew: false
+    },
+    {
+        id: "game_07",
+        image: "images/IMAGE_07.png",
+        type: "swf",
+        src: "assets/games/game07.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_08",
+        image: "images/IMAGE_08.png",
+        type: "swf",
+        src: "assets/games/game08.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_09",
+        image: "images/IMAGE_09.png",
+        type: "swf",
+        src: "assets/games/game09.swf",
+        category: "cooking",
+        isNew: false
+    },
+    {
+        id: "game_10",
+        image: "images/IMAGE_10.png",
+        type: "swf",
+        src: "assets/games/game10.swf",
+        category: "puzzle",
+        isNew: false
+    },
+    // ===== استمر في الإضافة حتى IMAGE_30 =====
+    // {
+    //     id: "game_11",
+    //     image: "images/IMAGE_11.png",
+    //     type: "swf",
+    //     src: "assets/games/game11.swf",
+    //     category: "action",
+    //     isNew: false
+    // },
 ];
 
-// Dictionary for Internationalization (i18n)
-const i18nDictionary = {
-    en: {
-        instruction: "Please choose your game from the background to play",
-        clickToStart: "Click Here or Press Space to Start",
-        downloadApp: "Download NOSTAGAMES App",
-        downloads: "Downloads:",
-        closeGame: "X Close Game",
-        adblockTitle: "AdBlocker Detected",
-        adblockMsg: "Please disable your AdBlocker to play the games and support us."
-    },
-    ar: {
-        instruction: "يرجى اختيار لعبتك من الخلفية للعبها",
-        clickToStart: "اضغط هنا أو على زر المسافة (Space) للبدء",
-        downloadApp: "تحميل تطبيق NOSTAGAMES",
-        downloads: "عدد التحميلات:",
-        closeGame: "X إغلاق اللعبة",
-        adblockTitle: "تم اكتشاف مانع إعلانات",
-        adblockMsg: "يرجى تعطيل مانع الإعلانات لتتمكن من اللعب ودعم الموقع."
-    }
+// =============================================
+//   جمل الشخصيات (ستظهر في فقاعات الكلام)
+// =============================================
+const mascotDialogues = {
+    alone: [
+        "هل جربت لعبة Papa's؟ 🍕",
+        "أنا أسرع منك! 💨",
+        "العب معي! 🎮",
+        "الفلاش لم يمت! ⚡",
+        "أين ذهبت طفولتي؟ 😢",
+        "حمّل التطبيق! 📱",
+        "Flash إلى الأبد! 🔥",
+        "من يوقفني؟! 🏃",
+    ],
+    meeting: [
+        "أخيراً! كنت وحيداً 👻",
+        "تنافس؟! لن تفوز! 😤",
+        "لعبة Fireboy أصعب منك! 🔥",
+        "شاهدت Hobo 3؟ 👊",
+        "من هو أسرع منا؟ 🏁",
+        "صديقي القديم! ❤️",
+        "تعالَ نلعب Jacksmith! ⚒️",
+    ],
+    fight: [
+        "خذ هذا! 👊💥",
+        "لن تهزمني! 😡",
+        "ألعاب الأكشن أفضل! 🎯",
+        "أنا البطل هنا! 🏆",
+    ]
 };
