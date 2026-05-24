@@ -7,7 +7,7 @@ const gamesDatabase = [
         title: "Classic Mario Flash",
         image: "assets/images/IMAGE 01.PNG",
         type: "swf", // Options: "swf" or "iframe"
-        src: "assets/games/game_01.swf"
+        src: "https://archive.org/download/decision-flash-game-series./decision.swf"
     },
     {
         id: "game_02",
