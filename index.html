@@ -1,39 +1,29 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" class="notranslate" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Play classic retro games directly in your browser.">
-    <title>NostaGames - Classic Retro Experience</title>
+    <meta name="google" content="notranslate">
+    <title>NostaGames - Arcade Experience</title>
     
-    <!-- Google Fonts: Pixel Art Font -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome for Social Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <!-- Anti-AdBlocker Bait (Must be exactly like this) -->
-    <div id="anti-adblock-bait" class="adBanner" style="position:absolute; width:1px; height:1px; top:-1000px; left:-1000px;"></div>
+<body class="crt-effect"> <div id="anti-adblock-bait" class="adBanner" style="position:absolute; width:1px; height:1px; top:-1000px; left:-1000px;"></div>
     
-    <!-- Anti-AdBlock Overlay Message -->
     <div id="adblock-warning" class="hidden">
         <div class="warning-content">
             <h2 data-i18n="adblockTitle">AdBlocker Detected</h2>
-            <p data-i18n="adblockMsg">Please disable your AdBlocker to play the games.</p>
+            <p data-i18n="adblockMsg">Please disable your AdBlocker to play.</p>
         </div>
     </div>
 
-    <!-- Main App Container -->
     <div class="app-container">
         
-        <!-- Top AdSense Slot -->
         <div class="ad-slot top-ad">
-            <!-- AdSense Code Here -->
-            <span class="ad-placeholder">Ad Space (Top)</span>
+            <span class="ad-placeholder">مساحة إعلانية (علوي)</span>
         </div>
 
         <header>
@@ -41,45 +31,44 @@
             <p id="instruction-text" data-i18n="instruction">Please choose your game to play</p>
         </header>
 
-        <!-- Main Content Area with Sidebar -->
         <main class="content-wrapper">
             
-            <!-- Sidebar AdSense Slot -->
             <aside class="ad-slot sidebar-ad">
-                <!-- AdSense Code Here -->
-                <span class="ad-placeholder">Ad Space (Side)</span>
+                <span class="ad-placeholder">مساحة إعلانية (جانبي)</span>
             </aside>
 
-            <!-- Interactive Games Area -->
             <section id="interactive-area">
-                <!-- Floating Icons Container -->
                 <div id="icons-container"></div>
                 
-                <!-- Game Player Container (Hidden by default) -->
                 <div id="game-player-container" class="hidden">
                     <div id="game-overlay">
                         <p data-i18n="clickToStart">Click Here or Press Space to Start</p>
                     </div>
-                    <!-- Ruffle or Iframe will be injected here -->
                     <div id="game-canvas"></div>
                     <button id="close-game-btn" data-i18n="closeGame">X Close Game</button>
                 </div>
             </section>
-
         </main>
 
-        <!-- Call to Action: App Download Section -->
-        <section class="cta-section">
-            <a href="#" id="download-app-btn" class="btn-pixel-art">
-                <i class="fa-solid fa-mobile-screen"></i> <span data-i18n="downloadApp">Download NOSTAGAMES App</span>
-            </a>
-            <div class="counter-container">
-                <span data-i18n="downloads">Downloads:</span>
-                <span id="download-counter">8,459,201</span>
+        <section class="action-stage">
+            <div class="arcade-floor">
+                <div id="retro-mascot" class="running">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                </div>
+            </div>
+            
+            <div class="cta-section">
+                <a href="#" id="download-app-btn" class="btn-pixel-art">
+                    <i class="fa-solid fa-mobile-screen"></i> <span data-i18n="downloadApp">Download NOSTAGAMES App</span>
+                </a>
+                <div class="counter-container">
+                    <span data-i18n="downloads">Downloads:</span>
+                    <span id="download-counter">8,459,201</span>
+                </div>
             </div>
         </section>
 
-        <!-- Social Links -->
         <section class="social-links">
             <a href="#" class="social-icon telegram"><i class="fa-brands fa-telegram"></i></a>
             <a href="#" class="social-icon facebook"><i class="fa-brands fa-facebook"></i></a>
@@ -87,18 +76,13 @@
             <a href="#" class="social-icon whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
         </section>
 
-        <!-- Bottom AdSense Slot -->
         <div class="ad-slot bottom-ad">
-            <!-- AdSense Code Here -->
-            <span class="ad-placeholder">Ad Space (Bottom)</span>
+            <span class="ad-placeholder">مساحة إعلانية (سفلي)</span>
         </div>
-
     </div>
 
-    <!-- Scripts -->
     <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
     <script src="data.js"></script>
     <script src="main.js"></script>
 </body>
-  </html>
-  
+</html>
