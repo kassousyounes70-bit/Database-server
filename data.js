@@ -7,7 +7,7 @@ const gamesDatabase = [
         title: "Classic Mario Flash",
         image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNQhaKAk5O_B0FO36Or9GF24xKsqXXYZBeGqUZ37KSmg&s=10",
         type: "swf", // Options: "swf" or "iframe"
-        src: "https://archive.org/download/decision-flash-game-series./decision.swf"
+        src: "assets/games/earth-taken-2-158340d56.swf"
     },
     // You can add hundreds of games here following the exact same object structure.
 ];
