@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- ===== SEO PRIMARY ===== -->
     <title>NostGames - العب ألعاب Flash الكلاسيكية على أندرويد مجاناً</title>
     <meta name="description" content="NostGames - تطبيق أندرويد مجاني لتشغيل ألعاب Flash و Unity الكلاسيكية. العب Fireboy Watergirl، Papa's Games، Hobo، Jacksmith وأكثر من 30 لعبة أسطورية من طفولتك مباشرة على هاتفك بدون كمبيوتر.">
     <meta name="keywords" content="ألعاب فلاش, العاب قديمة, flash games android, nostagames, تحميل العاب, العاب طفولة, fireboy watergirl, papa games, hobo game, jacksmith, earn to die, ألعاب بدون نت, محاكي فلاش, العاب مجانية, تطبيق العاب, retro games, classic flash games, العاب كلاسيكية, العاب أندرويد, تنزيل العاب">
@@ -12,7 +11,6 @@
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://nostagames.vercel.app/">
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nostagames.vercel.app/">
     <meta property="og:title" content="NostGames - عصر الفلاش الذهبي عاد! 🕹️">
@@ -45,7 +43,6 @@
 </head>
 <body>
 
-    <!-- ===== ADBLOCK WALL ===== -->
     <div id="adblock-wall" class="adblock-wall hidden">
         <div class="adblock-box">
             <div class="adblock-icon">🚫</div>
@@ -64,19 +61,16 @@
         </div>
     </div>
 
-    <!-- AdBlock bait -->
     <div id="ab-bait1" class="adBanner ad-banner-check" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
     <div id="ab-bait2" class="adsbox" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
     <div id="ab-bait3" class="ad-placement" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
 
-    <!-- Matrix background -->
     <canvas id="matrix-canvas" class="matrix-bg" aria-hidden="true"></canvas>
 
     <div class="crt-overlay" aria-hidden="true"></div>
 
     <div class="site-wrapper">
 
-        <!-- Top Toolbar - بدون زر الوضع الليلي -->
         <div class="top-toolbar">
             <button id="random-game-btn" class="tool-btn" title="لعبة عشوائية"><i class="fa-solid fa-dice"></i> 🎲</button>
             <button id="share-game-btn" class="tool-btn" title="مشاركة اللعبة"><i class="fa-solid fa-share-alt"></i></button>
@@ -85,7 +79,6 @@
             </div>
         </div>
 
-        <!-- App Banner -->
         <div class="app-banner" id="app-banner">
             <div class="app-banner-content">
                 <img src="images/icon.png" alt="NostGames" class="banner-icon" onerror="this.style.display='none'">
@@ -98,10 +91,8 @@
             </div>
         </div>
 
-        <!-- Top Ad -->
         <div class="ad-slot ad-top" id="ad-top"><span class="ad-label">إعلان</span></div>
 
-        <!-- Hero Section -->
         <header class="hero-section">
             <div class="hero-content">
                 <img src="images/icon.png" alt="NostGames Logo" class="hero-logo" onerror="this.style.display='none'">
@@ -128,7 +119,6 @@
             </div>
         </header>
 
-        <!-- Main Layout -->
         <main class="main-layout">
             <aside class="ad-slot ad-sidebar"><span class="ad-label">إعلان</span></aside>
             <section class="games-section">
@@ -142,7 +132,6 @@
             <aside class="ad-slot ad-sidebar-right"><span class="ad-label">إعلان</span></aside>
         </main>
 
-        <!-- Game Player -->
         <div id="game-player" class="game-player hidden">
             <div class="player-header">
                 <span id="playing-title" class="playing-title"></span>
@@ -157,10 +146,8 @@
             <div id="game-canvas" class="game-canvas"></div>
         </div>
 
-        <!-- NPC Canvas -->
         <canvas id="npc-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.55;" aria-hidden="true"></canvas>
 
-        <!-- Android App Section -->
         <section class="android-section reveal">
             <div class="android-section-content">
                 <div class="android-info">
@@ -181,7 +168,6 @@
 
         <div class="ad-slot ad-mid"><span class="ad-label">إعلان</span></div>
 
-        <!-- Features -->
         <section class="features-section">
             <div class="features-grid">
                 <div class="feature-card reveal"><div class="feature-icon">⚡</div><h3>سريع وخفيف</h3><p>تشغيل فوري</p></div>
@@ -191,7 +177,6 @@
             </div>
         </section>
 
-        <!-- Social -->
         <section class="social-section">
             <h3 class="section-title" style="font-size:0.7rem;">[ تابعنا ]</h3>
             <div class="social-links">
@@ -202,7 +187,6 @@
 
         <div class="ad-slot ad-bottom"><span class="ad-label">إعلان</span></div>
 
-        <!-- Footer -->
         <footer class="site-footer">
             <p>© 2025 NostGames · جميع الحقوق محفوظة</p>
             <div class="footer-links">
@@ -215,7 +199,6 @@
         </footer>
     </div>
 
-    <!-- About Overlay -->
     <div id="about-overlay" class="about-overlay hidden">
         <div class="about-content">
             <button class="about-close">&times;</button>
@@ -226,13 +209,11 @@
         </div>
     </div>
 
-    <!-- Back to Top -->
     <button id="back-to-top" class="back-to-top" style="display: none;"><i class="fa-solid fa-arrow-up"></i></button>
 
     <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
-    <script src="data.js"></script>
     <script src="npc.js"></script>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
     <script>
         // Matrix Background with extended Japanese characters
         (function matrixBg() {
