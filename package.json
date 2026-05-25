@@ -1,0 +1,10 @@
+{
+  "name": "nostagames-web",
+  "version": "9.0.0",
+  "description": "Nostagames SSG Builder",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "author": "Younes Kassous",
+  "license": "ISC"
+}
