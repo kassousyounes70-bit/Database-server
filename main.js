@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initRandomGame();
     initShare();
     initSecretCode();
-    initDarkMode();
+    // initDarkMode();  // تم إزالتها
     initBackToTop();
     initLoadingsBar();
 });
@@ -238,18 +238,6 @@ function unlockSecretGames() {
     } else {
         alert('🔓 كود سري صحيح! سيتم إضافة ألعاب سرية قريباً.');
     }
-}
-
-/* ===== DARK MODE ===== */
-function initDarkMode() {
-    const btn = document.getElementById('darkmode-toggle');
-    if (!btn) return;
-    const isDark = localStorage.getItem('darkmode') === 'true';
-    if (isDark) document.body.classList.add('dark-mode');
-    btn.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkmode', document.body.classList.contains('dark-mode'));
-    });
 }
 
 /* ===== BACK TO TOP ===== */

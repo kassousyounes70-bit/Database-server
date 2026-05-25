@@ -21,8 +21,12 @@
         }
         .contact-container h1 {
             font-family: var(--font);
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: var(--yellow);
+            margin-bottom: 20px;
+        }
+        .contact-container > p {
+            font-size: 0.8rem;
             margin-bottom: 20px;
         }
         .contact-methods {
@@ -32,46 +36,59 @@
             margin: 30px 0;
         }
         .contact-card {
+            display: block;
             background: var(--bg2);
             border: 2px solid var(--border);
             border-radius: 12px;
             padding: 20px;
-            transition: transform 0.2s;
+            text-decoration: none;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
         }
         .contact-card:hover {
             transform: translateY(-4px);
             border-color: var(--cyan);
         }
         .contact-card i {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: var(--cyan);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            display: block;
         }
         .contact-card h3 {
             font-family: var(--font);
-            font-size: 0.65rem;
-            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 10px;
         }
-        .contact-card p, .contact-card a {
-            font-size: 0.5rem;
+        .contact-card p {
+            font-size: 0.7rem;
             color: var(--text-dim);
-            text-decoration: none;
-        }
-        .contact-card a:hover {
-            color: var(--yellow);
+            margin: 0;
         }
         .back-home {
             display: inline-block;
             margin-top: 20px;
             font-family: var(--font);
-            font-size: 0.55rem;
+            font-size: 0.8rem;
             background: var(--purple);
-            padding: 10px 16px;
+            padding: 12px 20px;
             border-radius: 8px;
             text-decoration: none;
             color: #fff;
         }
         .back-home:hover { background: var(--cyan); }
+        /* تنسيق البريد الإلكتروني داخل المربع */
+        .contact-card .email-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 5px;
+        }
+        .contact-card .email-link:hover {
+            color: var(--yellow);
+        }
     </style>
 </head>
 <body>
@@ -79,27 +96,30 @@
     <div class="site-wrapper" style="padding: 20px;">
         <div class="contact-container">
             <h1><i class="fa-solid fa-envelope"></i> اتصل بنا</h1>
-            <p style="font-size:0.55rem;">نرحب بأسئلتك، اقتراحاتك، أو أي استفسار حول الألعاب أو التطبيق.</p>
+            <p>نرحب بأسئلتك، اقتراحاتك، أو أي استفسار حول الألعاب أو التطبيق.</p>
 
             <div class="contact-methods">
-                <div class="contact-card">
+                <!-- البريد الإلكتروني (لا يفتح كرابط عادي، لكننا نجعله قابلاً للنقر) -->
+                <a href="mailto:kassousyounes70@gmail.com" class="contact-card">
                     <i class="fa-solid fa-envelope"></i>
                     <h3>البريد الإلكتروني</h3>
-                    <p><a href="mailto:kassousyounes70@gmail.com">kassousyounes70@gmail.com</a></p>
+                    <p>kassousyounes70@gmail.com</p>
                     <p>نرد عادة خلال 24-48 ساعة</p>
-                </div>
+                </a>
 
-                <div class="contact-card">
+                <!-- تيليجرام -->
+                <a href="https://t.me/Nostagames" target="_blank" class="contact-card">
                     <i class="fa-brands fa-telegram"></i>
                     <h3>تيليجرام</h3>
-                    <p><a href="https://t.me/Nostagames" target="_blank">@Nostagames</a></p>
-                </div>
+                    <p>@Nostagames</p>
+                </a>
 
-                <div class="contact-card">
+                <!-- انستقرام -->
+                <a href="https://ig.me/j/AbbFojH8OYaP8HDa/" target="_blank" class="contact-card">
                     <i class="fa-brands fa-instagram"></i>
                     <h3>انستقرام</h3>
-                    <p><a href="https://ig.me/j/AbbFojH8OYaP8HDa/" target="_blank">NostGames Instagram</a></p>
-                </div>
+                    <p>NostGames Instagram</p>
+                </a>
             </div>
 
             <a href="index.html" class="back-home"><i class="fa-solid fa-arrow-right"></i> العودة إلى الصفحة الرئيسية</a>
