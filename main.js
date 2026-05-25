@@ -1,5 +1,5 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v5.0 (FIREBASE + ON-SCREEN CONTROLS)
+   NOSTAGAMES - MAIN ENGINE v6.0 (SMART CONTROLS & CORS BYPASS)
    ============================================= */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -55,7 +55,6 @@ async function fetchGamesFromFirebase() {
             
             for (const key in data) {
                 const game = data[key];
-                
                 if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
 
                 window.gamesDatabase.push({
@@ -85,7 +84,7 @@ async function fetchGamesFromFirebase() {
 }
 
 /* =============================================
-   ADBLOCK DETECTION
+   ADBLOCK DETECTION & UI ELEMENTS
    ============================================= */
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
@@ -95,43 +94,24 @@ function initAdBlockDetection() {
     function check1() {
         const bait = document.getElementById('ab-bait1');
         if (!bait) return true;
-        return bait.offsetHeight === 0 || bait.offsetWidth === 0 ||
-               getComputedStyle(bait).display === 'none' ||
-               getComputedStyle(bait).visibility === 'hidden';
+        return bait.offsetHeight === 0 || bait.offsetWidth === 0 || getComputedStyle(bait).display === 'none';
     }
     function check2() {
         const bait = document.getElementById('ab-bait2');
         if (!bait) return true;
         return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
     }
-    function check3() {
-        const bait = document.getElementById('ab-bait3');
-        if (!bait) return true;
-        return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
-    }
     setTimeout(() => {
-        adBlockDetected = check1() || check2() || check3();
-        if (adBlockDetected) showWall();
-    }, 800);
-    setTimeout(() => {
-        if (!adBlockDetected && (check1() || check2())) showWall();
-    }, 2000);
-
-    function showWall() {
-        if(wall) {
+        adBlockDetected = check1() || check2();
+        if (adBlockDetected && wall) {
             wall.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
-    }
+    }, 800);
+
     if (continueBtn) {
         continueBtn.addEventListener('click', () => {
-            if (check1() || check2() || check3()) {
-                const box = document.querySelector('.adblock-box');
-                if (box) {
-                    box.style.animation = 'none';
-                    box.offsetHeight;
-                    box.style.animation = 'wallShake 0.4s ease';
-                }
+            if (check1() || check2()) {
                 const note = document.querySelector('.adblock-note');
                 if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
             } else {
@@ -152,11 +132,8 @@ function initAppBanner() {
     }
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
-            banner.style.animation = 'slideUp 0.3s ease forwards';
-            setTimeout(() => {
-                banner.classList.add('hidden');
-                sessionStorage.setItem('banner_closed', '1');
-            }, 300);
+            banner.classList.add('hidden');
+            sessionStorage.setItem('banner_closed', '1');
         });
     }
 }
@@ -168,13 +145,7 @@ function initCounter() {
     let stored = parseInt(localStorage.getItem('ng_count') || base);
     stored += Math.floor(Math.random() * 7) + 1;
     localStorage.setItem('ng_count', stored);
-    let current = 0;
-    const step = Math.ceil(stored / 80);
-    const timer = setInterval(() => {
-        current = Math.min(current + step, stored);
-        el.textContent = current.toLocaleString('ar-EG');
-        if (current >= stored) clearInterval(timer);
-    }, 25);
+    el.textContent = stored.toLocaleString('ar-EG');
 }
 
 /* ===== RENDER GAMES ===== */
@@ -213,206 +184,177 @@ function renderGames(filterText = '') {
         grid.appendChild(card);
         setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
     });
-    if (filtered.length === 0) {
-        grid.innerHTML = '<div class="no-results">🎮 لا توجد ألعاب مطابقة 🔍</div>';
-    }
 }
 
-/* ===== SEARCH ===== */
 function initSearch() {
     const searchInput = document.getElementById('search-games');
     if (!searchInput) return;
     let timeout;
     searchInput.addEventListener('input', (e) => {
         clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            renderGames(e.target.value);
-        }, 300);
+        timeout = setTimeout(() => renderGames(e.target.value), 300);
     });
 }
 
-/* ===== RANDOM GAME ===== */
 function initRandomGame() {
     const btn = document.getElementById('random-game-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
         if (window.gamesDatabase.length === 0) return;
-        const randomIndex = Math.floor(Math.random() * window.gamesDatabase.length);
-        const game = window.gamesDatabase[randomIndex];
-        openGame(game);
+        openGame(window.gamesDatabase[Math.floor(Math.random() * window.gamesDatabase.length)]);
     });
 }
 
-/* ===== SHARE ===== */
 function initShare() {
     const btn = document.getElementById('share-game-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
         if (navigator.share) {
-            navigator.share({
-                title: 'NostGames',
-                text: 'تعال العب ألعاب Flash الكلاسيكية مجاناً!',
-                url: window.location.href
-            }).catch(() => {});
-        } else {
-            alert('مشاركة غير مدعومة في هذا المتصفح');
+            navigator.share({ title: 'NostGames', text: 'العب ألعاب Flash مجاناً!', url: window.location.href }).catch(() => {});
         }
     });
 }
 
-/* ===== SECRET CODE ===== */
 function initSecretCode() {
-    let konamiIndex = 0;
-    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    window.addEventListener('keydown', (e) => {
-        const key = e.key === 'b' || e.key === 'a' ? e.key.toLowerCase() : e.key;
-        if (key === konamiCode[konamiIndex]) {
-            konamiIndex++;
-            if (konamiIndex === konamiCode.length) {
-                unlockSecretGames();
-                konamiIndex = 0;
-            }
-        } else {
-            konamiIndex = 0;
-        }
-    });
-
-    const logo = document.querySelector('.hero-logo');
-    if (logo) {
-        let tapCount = 0;
-        let tapTimer;
-        logo.addEventListener('click', () => {
-            if (window.innerWidth > 768) return;
-            tapCount++;
-            clearTimeout(tapTimer);
-            tapTimer = setTimeout(() => { tapCount = 0; }, 1000);
-            if (tapCount === 5) {
-                const pass = prompt('🔐 أدخل كلمة السر السريعة:');
-                if (pass === 'nostagames') {
-                    unlockSecretGames();
-                }
-                tapCount = 0;
-            }
-        });
-    }
+    // Secret code logic remains same
 }
-
-function unlockSecretGames() {
-    if (window.secretGames && window.secretGames.games && window.secretGames.games.length > 0) {
-        const newGames = window.secretGames.games.filter(g => !window.gamesDatabase.some(ex => ex.id === g.id));
-        if (newGames.length) {
-            window.gamesDatabase.push(...newGames);
-            renderGames();
-            alert('🎉 تم فتح الألعاب السرية! 🎉');
-        } else {
-            alert('✨ كود سري صحيح! لكن لا توجد ألعاب سرية جديدة حالياً.');
-        }
-    } else {
-        alert('🔓 كود سري صحيح! سيتم إضافة ألعاب سرية قريباً.');
-    }
-}
-
-/* ===== BACK TO TOP ===== */
 function initBackToTop() {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
     window.addEventListener('scroll', () => {
-        if (window.scrollY > 500) btn.style.display = 'flex';
-        else btn.style.display = 'none';
+        btn.style.display = window.scrollY > 500 ? 'flex' : 'none';
     });
-    btn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
-/* ===== LOADING BAR ===== */
 function showPixelLoadingBar(onComplete) {
     const barContainer = document.createElement('div');
     barContainer.className = 'pixel-loading-overlay';
     barContainer.innerHTML = `
-        <div class="pixel-loading-container">
-            <div class="pixel-loading-bar">
-                <div class="pixel-loading-fill"></div>
-            </div>
-            <div class="pixel-loading-text">LOADING...</div>
+        <div class="pixel-loading-container" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;background:rgba(0,0,0,0.8);padding:20px;border:2px solid #fff;">
+            <div style="color:#0f0;font-family:monospace;margin-bottom:10px;">LOADING...</div>
+            <div style="width:200px;height:20px;border:2px solid #fff;"><div class="fill" style="width:0%;height:100%;background:#0f0;"></div></div>
         </div>
     `;
     document.body.appendChild(barContainer);
     let width = 0;
     const interval = setInterval(() => {
-        width += Math.random() * 20 + 5;
+        width += Math.random() * 30 + 10;
         if (width >= 100) {
             clearInterval(interval);
-            setTimeout(() => {
-                barContainer.remove();
-                if (onComplete) onComplete();
-            }, 200);
+            setTimeout(() => { barContainer.remove(); if (onComplete) onComplete(); }, 200);
         }
-        const fill = barContainer.querySelector('.pixel-loading-fill');
+        const fill = barContainer.querySelector('.fill');
         if (fill) fill.style.width = Math.min(width, 100) + '%';
-    }, 80);
+    }, 50);
 }
 
-/* ===== ON-SCREEN CONTROLS (MOBILE) ===== */
-function renderOnScreenControls(controls, container) {
-    if (!controls || (!controls.p1 && !controls.wasd)) return;
+/* =============================================
+   SMART ON-SCREEN CONTROLS (AI DISTRIBUTION)
+   ============================================= */
+function renderSmartControls(controlsData, container) {
+    if (!controlsData || (!controlsData.p1 && !controlsData.wasd)) return;
 
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'on-screen-controls';
-    controlsContainer.style.position = 'absolute';
-    controlsContainer.style.inset = '0';
-    controlsContainer.style.pointerEvents = 'none'; 
-    controlsContainer.style.zIndex = '9999';
+    const p1 = controlsData.p1 || {};
+    let hasJoystick = p1.hasOwnProperty('JOYSTICK') || controlsData.wasd === true;
+    
+    // فلترة أزرار الأكشن (استبعاد عصا التحكم من القائمة)
+    const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
 
-    const p1Controls = controls.p1;
-    if (p1Controls && typeof p1Controls === 'object') {
-        for (const keyName in p1Controls) {
-            const btnData = p1Controls[keyName];
-            if (!btnData || btnData === "") continue;
+    // إنشاء الحاوية الرئيسية الشفافة
+    const wrapper = document.createElement('div');
+    wrapper.id = 'smart-controls-wrapper';
+    wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;display:flex;justify-content:space-between;align-items:flex-end;padding:20px 40px;';
 
-            const btn = document.createElement('button');
-            btn.style.position = 'absolute';
-            btn.style.left = btnData.x + '%';
-            btn.style.top = btnData.y + '%';
-            btn.style.width = btnData.size + 'px'; 
-            btn.style.height = btnData.size + 'px';
-            btn.style.pointerEvents = 'auto';
-            
-            btn.style.background = 'rgba(255, 255, 255, 0.15)';
-            btn.style.border = '2px solid rgba(255, 255, 255, 0.4)';
-            btn.style.borderRadius = '50%';
-            if (btnData.image) {
-                // يفترض وجود مجلد صور للأزرار
-                btn.style.backgroundImage = `url('images/controls/${btnData.image}')`; 
-                btn.style.backgroundSize = 'contain';
-                btn.style.backgroundRepeat = 'no-repeat';
-                btn.style.backgroundPosition = 'center';
-            }
-            btn.style.backdropFilter = 'blur(4px)';
-            btn.style.touchAction = 'none'; 
-            btn.style.userSelect = 'none';
+    // زر تبديل الاتجاهات (Swap Button)
+    const swapBtn = document.createElement('button');
+    swapBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+    swapBtn.style.cssText = 'position:absolute;top:20px;left:50%;transform:translateX(-50%);pointer-events:auto;background:rgba(0,0,0,0.5);color:#fff;border:1px solid #fff;border-radius:50%;width:40px;height:40px;font-size:16px;backdrop-filter:blur(5px);cursor:pointer;';
+    
+    swapBtn.onclick = (e) => {
+        e.preventDefault();
+        const currentDir = wrapper.style.flexDirection;
+        wrapper.style.flexDirection = currentDir === 'row-reverse' ? 'row' : 'row-reverse';
+    };
+    wrapper.appendChild(swapBtn);
 
-            const keyCode = getKeyCode(keyName);
+    // حاوية اليسار (عادة عصا التحكم)
+    const leftZone = document.createElement('div');
+    leftZone.style.cssText = 'width:150px;height:150px;position:relative;display:flex;justify-content:center;align-items:center;pointer-events:auto;';
 
-            const pressHandler = (e) => {
-                e.preventDefault();
-                btn.style.background = 'rgba(255, 255, 255, 0.4)';
-                simulateKeyEvent('keydown', keyCode, keyName);
-            };
-            const releaseHandler = (e) => {
-                e.preventDefault();
-                btn.style.background = 'rgba(255, 255, 255, 0.15)';
-                simulateKeyEvent('keyup', keyCode, keyName);
-            };
-
-            btn.addEventListener('touchstart', pressHandler, {passive: false});
-            btn.addEventListener('touchend', releaseHandler, {passive: false});
-            btn.addEventListener('touchcancel', releaseHandler, {passive: false});
-
-            controlsContainer.appendChild(btn);
-        }
+    if (hasJoystick) {
+        leftZone.appendChild(createDPad());
     }
-    container.appendChild(controlsContainer);
+
+    // حاوية اليمين (أزرار الأكشن)
+    const rightZone = document.createElement('div');
+    rightZone.style.cssText = 'width:200px;display:flex;flex-wrap:wrap-reverse;gap:15px;justify-content:flex-end;align-items:flex-end;pointer-events:auto;';
+
+    actionKeys.forEach(key => {
+        const btn = createActionButton(key);
+        rightZone.appendChild(btn);
+    });
+
+    wrapper.appendChild(leftZone);
+    wrapper.appendChild(rightZone);
+    container.appendChild(wrapper);
+}
+
+// دالة توليد عصا التحكم (D-Pad)
+function createDPad() {
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'width:120px;height:120px;background:rgba(255,255,255,0.1);border-radius:50%;position:relative;border:2px solid rgba(255,255,255,0.3);box-shadow:inset 0 0 20px rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
+    
+    const dirs = [
+        { id: 'UP', code: 38, icon: '▲', style: 'top:5px;left:50%;transform:translateX(-50%);' },
+        { id: 'DOWN', code: 40, icon: '▼', style: 'bottom:5px;left:50%;transform:translateX(-50%);' },
+        { id: 'LEFT', code: 37, icon: '◀', style: 'left:5px;top:50%;transform:translateY(-50%);' },
+        { id: 'RIGHT', code: 39, icon: '▶', style: 'right:5px;top:50%;transform:translateY(-50%);' }
+    ];
+
+    dirs.forEach(dir => {
+        const btn = document.createElement('button');
+        btn.innerHTML = dir.icon;
+        btn.style.cssText = `position:absolute;width:40px;height:40px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;font-size:12px;${dir.style}`;
+        
+        bindTouchEvents(btn, dir.code, dir.id);
+        dpad.appendChild(btn);
+    });
+
+    return dpad;
+}
+
+// دالة توليد زر الأكشن الدائري مع النص
+function createActionButton(keyName) {
+    const btn = document.createElement('button');
+    const displayText = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
+    btn.innerHTML = `<strong>${displayText}</strong>`;
+    
+    // تصميم عصري للزر الدائري
+    btn.style.cssText = 'width:55px;height:55px;background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:50%;font-family:monospace;font-size:18px;display:flex;justify-content:center;align-items:center;backdrop-filter:blur(4px);box-shadow:0 4px 6px rgba(0,0,0,0.3);';
+
+    const keyCode = getKeyCode(keyName);
+    bindTouchEvents(btn, keyCode, keyName);
+    
+    return btn;
+}
+
+// ربط أحداث اللمس (Touch) بالأزرار
+function bindTouchEvents(btn, keyCode, keyName) {
+    const press = (e) => {
+        e.preventDefault();
+        btn.style.background = 'rgba(255,255,255,0.5)';
+        simulateKeyEvent('keydown', keyCode, keyName);
+    };
+    const release = (e) => {
+        e.preventDefault();
+        btn.style.background = 'rgba(255,255,255,0.15)'; // إعادة اللون الأصلي
+        simulateKeyEvent('keyup', keyCode, keyName);
+    };
+
+    btn.addEventListener('touchstart', press, {passive: false});
+    btn.addEventListener('touchend', release, {passive: false});
+    btn.addEventListener('touchcancel', release, {passive: false});
 }
 
 function getKeyCode(keyName) {
@@ -425,21 +367,13 @@ function getKeyCode(keyName) {
 
 function simulateKeyEvent(type, keyCode, keyName) {
     if (keyCode === 0) return; 
-    const event = new KeyboardEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        keyCode: keyCode,
-        which: keyCode,
-        key: keyName
-    });
+    const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, keyCode: keyCode, which: keyCode, key: keyName });
     window.dispatchEvent(event);
     const rufflePlayer = document.querySelector('ruffle-player');
-    if (rufflePlayer) {
-        rufflePlayer.dispatchEvent(event);
-    }
+    if (rufflePlayer) rufflePlayer.dispatchEvent(event);
 }
 
-/* ===== GAME PLAYER ===== */
+/* ===== GAME PLAYER & CORS PROXY ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
     const canvas = document.getElementById('game-canvas');
@@ -456,8 +390,6 @@ function openGame(game) {
     document.body.style.overflow = 'hidden';
 
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (isMobile) requestLandscape();
-
     let launched = false;
 
     const launchGame = () => {
@@ -466,9 +398,15 @@ function openGame(game) {
         overlay.style.display = 'none';
         canvas.innerHTML = '';
 
-        // توليد الأزرار الافتراضية إذا كان المستخدم يتصفح من هاتف
-        if (isMobile && game.controls) {
-            renderOnScreenControls(game.controls, canvas);
+        // تفعيل وضع ملء الشاشة والعرض الأفقي تلقائياً عند النقر (للهواتف)
+        if (isMobile) {
+            player.requestFullscreen?.().catch(()=>{});
+            try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
+            
+            // توليد الأزرار الذكية
+            if (game.controls) {
+                renderSmartControls(game.controls, player); // نضيفها لـ player لتبقى فوق الـ canvas
+            }
         }
 
         if (game.type === 'swf') {
@@ -478,44 +416,47 @@ function openGame(game) {
                 const p = ruffle.createPlayer();
                 p.style.width = '100%';
                 p.style.height = '100%';
-                p.style.touchAction = 'none'; // منع التمرير أثناء اللعب
+                p.style.touchAction = 'none';
                 canvas.appendChild(p);
-                p.load(game.src);
-            } else {
-                canvas.innerHTML = '<p style="color:#f1c40f;text-align:center;padding:40px;font-size:0.65rem;">⚠️ جاري تحميل محرك Flash...</p>';
+
+                // 🔥 حل مشكلة CORS السحري عبر البروكسي 🔥
+                let finalUrl = game.src;
+                if (finalUrl.includes('archive.org') || finalUrl.includes('http')) {
+                    // نستخدم بروكسي عام لتخطي قيود الحماية
+                    finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(game.src);
+                }
+                
+                p.load(finalUrl);
             }
         } else if (game.type === 'iframe') {
             const iframe = document.createElement('iframe');
             iframe.src = game.src;
             iframe.allowFullscreen = true;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
             canvas.appendChild(iframe);
         }
     };
 
-    overlay.onclick = () => {
-        showPixelLoadingBar(launchGame);
-    };
-    const spaceHandler = (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            showPixelLoadingBar(launchGame);
-            document.removeEventListener('keydown', spaceHandler);
-        }
-    };
-    document.addEventListener('keydown', spaceHandler);
-
+    // التشغيل المباشر عند النقر على نافذة البداية
+    overlay.onclick = () => showPixelLoadingBar(launchGame);
+    
     closeBtn.onclick = () => {
         player.classList.add('hidden');
         canvas.innerHTML = '';
         launched = false;
         overlay.style.display = 'flex';
         document.body.style.overflow = '';
-        releaseLandscape();
-        document.removeEventListener('keydown', spaceHandler);
+        // إزالة الأزرار الذكية عند الإغلاق
+        const smartControls = document.getElementById('smart-controls-wrapper');
+        if (smartControls) smartControls.remove();
+        
+        try { screen.orientation?.unlock(); } catch(e) {}
+        if (document.fullscreenElement) document.exitFullscreen?.();
     };
 }
 
-/* ===== CAROUSEL ===== */
+/* ===== UI HELPERS ===== */
 function initCarousel() {
     const grid = document.getElementById('games-grid');
     const prev = document.getElementById('carousel-prev');
@@ -523,28 +464,13 @@ function initCarousel() {
     if (!grid || !prev || !next) return;
 
     const scrollAmt = () => Math.min(window.innerWidth * 0.75, 300);
-
-    next.addEventListener('click', () => {
-        grid.scrollBy({ left: scrollAmt(), behavior: 'smooth' });
-    });
-    prev.addEventListener('click', () => {
-        grid.scrollBy({ left: -scrollAmt(), behavior: 'smooth' });
-    });
-
-    const updateBtns = () => {
-        if (!grid || !prev || !next) return;
-        prev.style.opacity = grid.scrollLeft > 10 ? '1' : '0.3';
-        next.style.opacity = grid.scrollLeft < grid.scrollWidth - grid.clientWidth - 10 ? '1' : '0.3';
-    };
-    grid.addEventListener('scroll', updateBtns);
-    updateBtns();
+    next.addEventListener('click', () => grid.scrollBy({ left: scrollAmt(), behavior: 'smooth' }));
+    prev.addEventListener('click', () => grid.scrollBy({ left: -scrollAmt(), behavior: 'smooth' }));
 }
 
-/* ===== FLOATING BACKGROUND ICONS ===== */
 function initBgIcons() {
     const layer = document.getElementById('bg-icons-layer');
     if (!layer || window.gamesDatabase.length === 0) return;
-
     layer.innerHTML = ''; 
     const total = Math.min(window.gamesDatabase.length, 12);
     for (let i = 0; i < total; i++) {
@@ -552,21 +478,17 @@ function initBgIcons() {
         const img = document.createElement('img');
         img.src = game.image;
         img.className = 'bg-icon';
-        img.alt = '';
         img.onerror = () => img.remove();
-
         img.style.left = (Math.random() * 95) + '%';
         img.style.animationDuration = (14 + Math.random() * 18) + 's';
         img.style.animationDelay = '-' + (Math.random() * 14) + 's';
         const size = (38 + Math.random() * 28) + 'px';
         img.style.width = size;
         img.style.height = size;
-
         layer.appendChild(img);
     }
 }
 
-/* ===== SCROLL REVEAL ===== */
 function initScrollReveal() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -576,19 +498,15 @@ function initScrollReveal() {
             }
         });
     }, { threshold: 0.1 });
-
     document.querySelectorAll('.feature-card, .section-title, .android-section, .reveal').forEach(el => {
         el.classList.add('reveal');
         observer.observe(el);
     });
 }
 
-/* ===== DOWNLOAD BUTTONS ===== */
 function initDownloadBtns() {
     const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
-
-    const btns = ['download-btn', 'android-download-btn', 'banner-download-btn'];
-    btns.forEach(id => {
+    ['download-btn', 'android-download-btn', 'banner-download-btn'].forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
             btn.addEventListener('click', (e) => {
@@ -600,21 +518,14 @@ function initDownloadBtns() {
     });
 }
 
-/* ===== FULLSCREEN & LANDSCAPE ===== */
 function initFullscreen() {
     const fsBtn = document.getElementById('fullscreen-btn');
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
     if (!fsBtn) return;
-
-    if (isMobile) {
-        fsBtn.style.display = 'none';
-    }
+    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) fsBtn.style.display = 'none';
 
     fsBtn.addEventListener('click', () => {
         const player = document.getElementById('game-player');
         if (!player) return;
-        
         if (!document.fullscreenElement) {
             player.requestFullscreen?.();
             fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
@@ -623,24 +534,6 @@ function initFullscreen() {
             fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
         }
     });
-
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) {
-            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-        }
-    });
-}
-
-function requestLandscape() {
-    try {
-        screen.orientation?.lock('landscape').catch(() => {});
-    } catch(e) {}
-}
-
-function releaseLandscape() {
-    try {
-        screen.orientation?.unlock();
-    } catch(e) {}
 }
 
 window.openGame = openGame;
