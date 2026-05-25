@@ -1,11 +1,10 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v4.0 (FIREBASE EDITION)
+   NOSTAGAMES - MAIN ENGINE v5.0 (FIREBASE + ON-SCREEN CONTROLS)
    ============================================= */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
-// إعدادات الربط الخاصة بـ Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBjy1mH-Mjikc5aiX_oI2uoGHuI0Y1ZptI",
     authDomain: "n-core-nostagames.firebaseapp.com",
@@ -16,11 +15,9 @@ const firebaseConfig = {
     appId: "1:705596610155:web:8c076439331d4ff604c32e"
 };
 
-// تهيئة Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// مصفوفة الألعاب العامة (تحل محل ملف data.js)
 window.gamesDatabase = [];
 window.secretGames = { games: [] }; 
 
@@ -29,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initAppBanner();
     initCounter();
     
-    // استدعاء الأنظمة المستقلة
     if (typeof NPCSystem !== 'undefined') NPCSystem.init();
     initScrollReveal();
     initDownloadBtns();
@@ -39,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initBackToTop();
     if (typeof initLoadingsBar === 'function') initLoadingsBar();
 
-    // جلب الألعاب من قاعدة البيانات ثم تشغيل وظائف الواجهة
     fetchGamesFromFirebase();
 });
 
@@ -61,10 +56,8 @@ async function fetchGamesFromFirebase() {
             for (const key in data) {
                 const game = data[key];
                 
-                // تخطي الألعاب المحجوبة أو التي ليس لها رابط تحميل
                 if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
 
-                // تحويل هيكلية Firebase لتتناسب مع مشغل الموقع
                 window.gamesDatabase.push({
                     id: key,
                     title: game.name || "بدون اسم",
@@ -77,7 +70,6 @@ async function fetchGamesFromFirebase() {
                 });
             }
             
-            // تهيئة واجهة المستخدم بعد اكتمال تحميل البيانات
             renderGames();
             initBgIcons();
             initCarousel();
@@ -361,6 +353,92 @@ function showPixelLoadingBar(onComplete) {
     }, 80);
 }
 
+/* ===== ON-SCREEN CONTROLS (MOBILE) ===== */
+function renderOnScreenControls(controls, container) {
+    if (!controls || (!controls.p1 && !controls.wasd)) return;
+
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'on-screen-controls';
+    controlsContainer.style.position = 'absolute';
+    controlsContainer.style.inset = '0';
+    controlsContainer.style.pointerEvents = 'none'; 
+    controlsContainer.style.zIndex = '9999';
+
+    const p1Controls = controls.p1;
+    if (p1Controls && typeof p1Controls === 'object') {
+        for (const keyName in p1Controls) {
+            const btnData = p1Controls[keyName];
+            if (!btnData || btnData === "") continue;
+
+            const btn = document.createElement('button');
+            btn.style.position = 'absolute';
+            btn.style.left = btnData.x + '%';
+            btn.style.top = btnData.y + '%';
+            btn.style.width = btnData.size + 'px'; 
+            btn.style.height = btnData.size + 'px';
+            btn.style.pointerEvents = 'auto';
+            
+            btn.style.background = 'rgba(255, 255, 255, 0.15)';
+            btn.style.border = '2px solid rgba(255, 255, 255, 0.4)';
+            btn.style.borderRadius = '50%';
+            if (btnData.image) {
+                // يفترض وجود مجلد صور للأزرار
+                btn.style.backgroundImage = `url('images/controls/${btnData.image}')`; 
+                btn.style.backgroundSize = 'contain';
+                btn.style.backgroundRepeat = 'no-repeat';
+                btn.style.backgroundPosition = 'center';
+            }
+            btn.style.backdropFilter = 'blur(4px)';
+            btn.style.touchAction = 'none'; 
+            btn.style.userSelect = 'none';
+
+            const keyCode = getKeyCode(keyName);
+
+            const pressHandler = (e) => {
+                e.preventDefault();
+                btn.style.background = 'rgba(255, 255, 255, 0.4)';
+                simulateKeyEvent('keydown', keyCode, keyName);
+            };
+            const releaseHandler = (e) => {
+                e.preventDefault();
+                btn.style.background = 'rgba(255, 255, 255, 0.15)';
+                simulateKeyEvent('keyup', keyCode, keyName);
+            };
+
+            btn.addEventListener('touchstart', pressHandler, {passive: false});
+            btn.addEventListener('touchend', releaseHandler, {passive: false});
+            btn.addEventListener('touchcancel', releaseHandler, {passive: false});
+
+            controlsContainer.appendChild(btn);
+        }
+    }
+    container.appendChild(controlsContainer);
+}
+
+function getKeyCode(keyName) {
+    const keyMap = {
+        'A': 65, 'B': 66, 'C': 67, 'D': 68, 'E': 69, 'F': 70, 'G': 71, 'H': 72, 'I': 73, 'J': 74, 'K': 75, 'L': 76, 'M': 77, 'N': 78, 'O': 79, 'P': 80, 'Q': 81, 'R': 82, 'S': 83, 'T': 84, 'U': 85, 'V': 86, 'W': 87, 'X': 88, 'Y': 89, 'Z': 90,
+        'SPACE': 32, 'LEFT': 37, 'UP': 38, 'RIGHT': 39, 'DOWN': 40
+    };
+    return keyMap[keyName.toUpperCase()] || 0;
+}
+
+function simulateKeyEvent(type, keyCode, keyName) {
+    if (keyCode === 0) return; 
+    const event = new KeyboardEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        keyCode: keyCode,
+        which: keyCode,
+        key: keyName
+    });
+    window.dispatchEvent(event);
+    const rufflePlayer = document.querySelector('ruffle-player');
+    if (rufflePlayer) {
+        rufflePlayer.dispatchEvent(event);
+    }
+}
+
 /* ===== GAME PLAYER ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
@@ -387,6 +465,12 @@ function openGame(game) {
         launched = true;
         overlay.style.display = 'none';
         canvas.innerHTML = '';
+
+        // توليد الأزرار الافتراضية إذا كان المستخدم يتصفح من هاتف
+        if (isMobile && game.controls) {
+            renderOnScreenControls(game.controls, canvas);
+        }
+
         if (game.type === 'swf') {
             window.RufflePlayer = window.RufflePlayer || {};
             const ruffle = window.RufflePlayer.newest();
@@ -394,6 +478,7 @@ function openGame(game) {
                 const p = ruffle.createPlayer();
                 p.style.width = '100%';
                 p.style.height = '100%';
+                p.style.touchAction = 'none'; // منع التمرير أثناء اللعب
                 canvas.appendChild(p);
                 p.load(game.src);
             } else {
@@ -460,7 +545,7 @@ function initBgIcons() {
     const layer = document.getElementById('bg-icons-layer');
     if (!layer || window.gamesDatabase.length === 0) return;
 
-    layer.innerHTML = ''; // تفريغ الطبقة لمنع التكرار
+    layer.innerHTML = ''; 
     const total = Math.min(window.gamesDatabase.length, 12);
     for (let i = 0; i < total; i++) {
         const game = window.gamesDatabase[i % window.gamesDatabase.length];
@@ -558,6 +643,5 @@ function releaseLandscape() {
     } catch(e) {}
 }
 
-// تصدير الوظائف العامة لاستخدامها في واجهة المستخدم
 window.openGame = openGame;
 window.renderGames = renderGames;
