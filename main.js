@@ -70,7 +70,7 @@ async function fetchGamesFromFirebase() {
             }
             
             renderGames();
-            injectSEOSchema(); // ← إضافة SEO لجوجل
+            injectSEOSchema();
             initBgIcons();
             initCarousel();
             initSearch();
@@ -85,7 +85,7 @@ async function fetchGamesFromFirebase() {
 }
 
 /* =============================================
-   ADBLOCK DETECTION & UI ELEMENTS
+   ADBLOCK DETECTION & UI ELEMENTS (معدل للبوتات)
    ============================================= */
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
@@ -102,7 +102,11 @@ function initAdBlockDetection() {
         if (!bait) return true;
         return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
     }
+    
+    // منع ظهور الجدار لعناكب البحث
+    const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
     setTimeout(() => {
+        if (isBot) return;  // البوتات لا ترى الجدار
         adBlockDetected = check1() || check2();
         if (adBlockDetected && wall) {
             wall.classList.remove('hidden');
@@ -181,14 +185,13 @@ function renderGames(filterText = '') {
         card.appendChild(img);
         card.appendChild(ageBadge);
         card.appendChild(titleSpan);
-        // استدعاء الـ popup modal
         card.addEventListener('click', () => showGamePanel(game));
         grid.appendChild(card);
         setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
     });
 }
 
-/* ===== POPUP MODAL (بدل اللوحة السفلية) ===== */
+/* ===== POPUP MODAL ===== */
 function showGamePanel(game) {
     document.getElementById('game-panel')?.remove();
 
@@ -217,17 +220,9 @@ function showGamePanel(game) {
     `;
 
     document.body.appendChild(panel);
-
-    // إغلاق عند الضغط خارج الـ modal
-    panel.addEventListener('click', e => {
-        if (e.target === panel) panel.remove();
-    });
-
+    panel.addEventListener('click', e => { if (e.target === panel) panel.remove(); });
     document.getElementById('panel-close-btn').onclick = () => panel.remove();
-    document.getElementById('panel-play-btn').onclick = () => {
-        panel.remove();
-        openGame(game);
-    };
+    document.getElementById('panel-play-btn').onclick = () => { panel.remove(); openGame(game); };
 }
 
 function initSearch() {
@@ -339,9 +334,7 @@ function showPixelLoadingBar(onComplete) {
     }, 50);
 }
 
-/* =============================================
-   KEYBOARD EVENT SIMULATOR (RUFFLE COMPATIBLE)
-   ============================================= */
+/* ===== KEYBOARD EVENT SIMULATOR ===== */
 const KEY_DICT = {
     'A': { code: 65, key: 'a', codeStr: 'KeyA' }, 'B': { code: 66, key: 'b', codeStr: 'KeyB' },
     'C': { code: 67, key: 'c', codeStr: 'KeyC' }, 'D': { code: 68, key: 'd', codeStr: 'KeyD' },
@@ -366,7 +359,6 @@ const KEY_DICT = {
 function triggerRuffleKeyEvent(type, keyName) {
     const keyData = KEY_DICT[keyName.toUpperCase()];
     if (!keyData) return;
-
     const event = new KeyboardEvent(type, {
         bubbles: true, cancelable: true,
         keyCode: keyData.code, which: keyData.code,
@@ -377,118 +369,80 @@ function triggerRuffleKeyEvent(type, keyName) {
     if (rufflePlayer) rufflePlayer.dispatchEvent(event);
 }
 
-/* =============================================
-   SMART ON-SCREEN CONTROLS (ANALOG & DRAG)
-   ============================================= */
+/* ===== SMART CONTROLS ===== */
 let currentEditTarget = null;
 let controlsEditMode = false;
 
 function renderSmartControls(gameId, controlsData, container) {
     if (!controlsData || (!controlsData.p1 && !controlsData.wasd)) return;
-
     const p1 = controlsData.p1 || {};
     const useWasd = controlsData.wasd === true;
     let hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
     const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
-
-    // إنشاء الحاوية بـ اتجاه يسار-يمين إجباري لمنع الانعكاس
     const wrapper = document.createElement('div');
     wrapper.id = 'smart-controls-wrapper';
     wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;direction:ltr;';
-    
-    // شريط أدوات التعديل العلوي
     const toolbar = document.createElement('div');
     toolbar.id = 'controls-toolbar';
     toolbar.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:15px;pointer-events:auto;z-index:10000;background:rgba(0,0,0,0.6);padding:5px 15px;border-radius:20px;backdrop-filter:blur(5px);';
-
     const swapBtn = document.createElement('button');
     swapBtn.innerHTML = '<i class="fa-solid fa-arrows-left-right"></i>';
     swapBtn.className = 'ctrl-toolbar-btn';
-    
     const editBtn = document.createElement('button');
     editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
     editBtn.className = 'ctrl-toolbar-btn';
-
     const saveBtn = document.createElement('button');
     saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ';
     saveBtn.className = 'ctrl-toolbar-btn';
     saveBtn.style.display = 'none';
-
     const sizePlusBtn = document.createElement('button');
     sizePlusBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-plus"></i>';
     sizePlusBtn.className = 'ctrl-toolbar-btn';
     sizePlusBtn.style.display = 'none';
-
     const sizeMinusBtn = document.createElement('button');
     sizeMinusBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-minus"></i>';
     sizeMinusBtn.className = 'ctrl-toolbar-btn';
     sizeMinusBtn.style.display = 'none';
-
     const btnStyle = 'background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;padding:5px;';
     [swapBtn, editBtn, saveBtn, sizePlusBtn, sizeMinusBtn].forEach(b => b.style.cssText += btnStyle);
-
     toolbar.appendChild(swapBtn);
     toolbar.appendChild(editBtn);
     toolbar.appendChild(sizeMinusBtn);
     toolbar.appendChild(sizePlusBtn);
     toolbar.appendChild(saveBtn);
     wrapper.appendChild(toolbar);
-
-    // حاوية العناصر القابلة للسحب
     const elementsContainer = document.createElement('div');
     elementsContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
     wrapper.appendChild(elementsContainer);
-
-    // جلب التخطيط المحفوظ أو توليد تخطيط افتراضي ذكي
     let savedLayout = JSON.parse(localStorage.getItem('nosta_ctrls_' + gameId));
     let layoutMap = {};
-
     if (!savedLayout) {
-        // --- الهندسة التلقائية الذكية (Default Layout) ---
-        if (hasJoystick) {
-            layoutMap['JOYSTICK'] = { x: 10, y: 60, size: 120 };
-        }
-        
-        // التوزيع الشعاعي (Radial) للأزرار في الجهة اليمنى
-        const centerX = 80; // 80% من عرض الشاشة
-        const centerY = 70; // 70% من الارتفاع
-        const radius = 12;  // نسبة مئوية كنصف قطر
-        
-        if (actionKeys.length === 1) {
-            layoutMap[actionKeys[0]] = { x: centerX, y: centerY, size: 60 };
-        } else if (actionKeys.length === 2) {
+        if (hasJoystick) layoutMap['JOYSTICK'] = { x: 10, y: 60, size: 120 };
+        const centerX = 80, centerY = 70, radius = 12;
+        if (actionKeys.length === 1) layoutMap[actionKeys[0]] = { x: centerX, y: centerY, size: 60 };
+        else if (actionKeys.length === 2) {
             layoutMap[actionKeys[0]] = { x: centerX - 8, y: centerY + 5, size: 60 };
             layoutMap[actionKeys[1]] = { x: centerX + 8, y: centerY - 5, size: 60 };
         } else if (actionKeys.length === 3) {
-            // شكل مثلث
             layoutMap[actionKeys[0]] = { x: centerX - 8, y: centerY + 8, size: 60 };
             layoutMap[actionKeys[1]] = { x: centerX + 8, y: centerY + 8, size: 60 };
             layoutMap[actionKeys[2]] = { x: centerX, y: centerY - 10, size: 60 };
         } else if (actionKeys.length === 4) {
-            // شكل معين (Diamond)
-            layoutMap[actionKeys[0]] = { x: centerX, y: centerY + 12, size: 60 }; // تحت
-            layoutMap[actionKeys[1]] = { x: centerX - 10, y: centerY, size: 60 }; // يسار
-            layoutMap[actionKeys[2]] = { x: centerX, y: centerY - 12, size: 60 }; // فوق
-            layoutMap[actionKeys[3]] = { x: centerX + 10, y: centerY, size: 60 }; // يمين
+            layoutMap[actionKeys[0]] = { x: centerX, y: centerY + 12, size: 60 };
+            layoutMap[actionKeys[1]] = { x: centerX - 10, y: centerY, size: 60 };
+            layoutMap[actionKeys[2]] = { x: centerX, y: centerY - 12, size: 60 };
+            layoutMap[actionKeys[3]] = { x: centerX + 10, y: centerY, size: 60 };
         } else {
-            // شكل دائري لأكثر من 4 أزرار
             const angleStep = (2 * Math.PI) / actionKeys.length;
             actionKeys.forEach((key, index) => {
                 const angle = index * angleStep;
-                layoutMap[key] = {
-                    x: centerX + radius * Math.cos(angle),
-                    y: centerY + radius * Math.sin(angle),
-                    size: 55
-                };
+                layoutMap[key] = { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle), size: 55 };
             });
         }
     } else {
         layoutMap = savedLayout;
     }
-
-    // توليد العناصر
     let controlElements = [];
-
     if (hasJoystick) {
         const joyData = layoutMap['JOYSTICK'] || { x: 10, y: 60, size: 120 };
         const joy = createAnalogStick(useWasd);
@@ -497,7 +451,6 @@ function renderSmartControls(gameId, controlsData, container) {
         elementsContainer.appendChild(joy);
         controlElements.push(joy);
     }
-
     actionKeys.forEach(key => {
         const btnData = layoutMap[key] || { x: 50, y: 50, size: 60 };
         const btn = createActionButton(key);
@@ -506,17 +459,13 @@ function renderSmartControls(gameId, controlsData, container) {
         elementsContainer.appendChild(btn);
         controlElements.push(btn);
     });
-
     container.appendChild(wrapper);
-
-    // --- منطق شريط الأدوات والتعديل (Drag & Drop) ---
     swapBtn.onclick = () => {
         controlElements.forEach(el => {
             const currentX = parseFloat(el.style.left);
             el.style.left = (100 - currentX - (parseFloat(el.style.width)/window.innerWidth*100)) + '%';
         });
     };
-
     editBtn.onclick = () => {
         controlsEditMode = true;
         editBtn.style.display = 'none';
@@ -524,14 +473,12 @@ function renderSmartControls(gameId, controlsData, container) {
         saveBtn.style.display = 'block';
         sizePlusBtn.style.display = 'block';
         sizeMinusBtn.style.display = 'block';
-        wrapper.style.backgroundColor = 'rgba(0,0,0,0.4)'; // تظليل لإبراز وضع التعديل
-        
+        wrapper.style.backgroundColor = 'rgba(0,0,0,0.4)';
         controlElements.forEach(el => {
             el.classList.add('edit-mode');
             el.style.border = '2px dashed #0f0';
         });
     };
-
     saveBtn.onclick = () => {
         controlsEditMode = false;
         currentEditTarget = null;
@@ -541,7 +488,6 @@ function renderSmartControls(gameId, controlsData, container) {
         sizePlusBtn.style.display = 'none';
         sizeMinusBtn.style.display = 'none';
         wrapper.style.backgroundColor = 'transparent';
-
         const newLayout = {};
         controlElements.forEach(el => {
             el.classList.remove('edit-mode');
@@ -554,7 +500,6 @@ function renderSmartControls(gameId, controlsData, container) {
         });
         localStorage.setItem('nosta_ctrls_' + gameId, JSON.stringify(newLayout));
     };
-
     sizePlusBtn.onclick = () => {
         if (currentEditTarget) {
             let s = parseFloat(currentEditTarget.style.width) + 5;
@@ -569,26 +514,21 @@ function renderSmartControls(gameId, controlsData, container) {
             currentEditTarget.style.height = s + 'px';
         }
     };
-
-    // جعل العناصر قابلة للسحب
     controlElements.forEach(el => {
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
-
         el.addEventListener('touchstart', (e) => {
             if (!controlsEditMode) return;
             e.preventDefault();
             currentEditTarget = el;
             controlElements.forEach(c => c.style.borderColor = c.dataset.id === 'JOYSTICK' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)');
-            el.style.borderColor = '#ff0'; // تظليل العنصر المحدد
-
+            el.style.borderColor = '#ff0';
             isDragging = true;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             initialLeft = parseFloat(el.style.left) / 100 * window.innerWidth;
             initialTop = parseFloat(el.style.top) / 100 * window.innerHeight;
         }, {passive: false});
-
         el.addEventListener('touchmove', (e) => {
             if (!isDragging || !controlsEditMode) return;
             e.preventDefault();
@@ -596,11 +536,9 @@ function renderSmartControls(gameId, controlsData, container) {
             const dy = e.touches[0].clientY - startY;
             const newLeft = ((initialLeft + dx) / window.innerWidth) * 100;
             const newTop = ((initialTop + dy) / window.innerHeight) * 100;
-            
             el.style.left = Math.max(0, Math.min(newLeft, 90)) + '%';
             el.style.top = Math.max(0, Math.min(newTop, 90)) + '%';
         }, {passive: false});
-
         el.addEventListener('touchend', () => { isDragging = false; });
     });
 }
@@ -614,66 +552,41 @@ function applyElementStyle(el, x, y, size) {
     el.style.pointerEvents = 'auto';
 }
 
-/* ===== ANALOG STICK IMPLEMENTATION ===== */
 function createAnalogStick(useWasd) {
     const base = document.createElement('div');
     base.style.cssText = 'background:rgba(255,255,255,0.1);border-radius:50%;position:relative;border:2px solid rgba(255,255,255,0.3);box-shadow:inset 0 0 20px rgba(0,0,0,0.5);backdrop-filter:blur(4px);touch-action:none;';
-    
     const knob = document.createElement('div');
     knob.style.cssText = 'width:40%;height:40%;background:rgba(255,255,255,0.5);border-radius:50%;position:absolute;top:30%;left:30%;box-shadow:0 4px 10px rgba(0,0,0,0.5);transition:transform 0.1s ease-out;';
     base.appendChild(knob);
-
     let activeKeys = [];
     const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
-
     const updateKeys = (newKeys) => {
-        // إرسال keyup للمفاتيح التي لم تعد مضغوطة
-        activeKeys.forEach(k => {
-            if (!newKeys.includes(k)) triggerRuffleKeyEvent('keyup', k);
-        });
-        // إرسال keydown للمفاتيح الجديدة
-        newKeys.forEach(k => {
-            if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k);
-        });
+        activeKeys.forEach(k => { if (!newKeys.includes(k)) triggerRuffleKeyEvent('keyup', k); });
+        newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
         activeKeys = newKeys;
     };
-
     base.addEventListener('touchstart', handleJoystick, {passive: false});
     base.addEventListener('touchmove', handleJoystick, {passive: false});
-    
     function handleJoystick(e) {
-        if (controlsEditMode) return; // تعطيل اللعب في وضع التعديل
+        if (controlsEditMode) return;
         e.preventDefault();
         const rect = base.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         const maxRadius = rect.width / 2;
-        
         let dx = e.touches[0].clientX - centerX;
         let dy = e.touches[0].clientY - centerY;
         const distance = Math.sqrt(dx*dx + dy*dy);
-        
-        // تقييد حركة المقبض داخل الدائرة
-        if (distance > maxRadius) {
-            dx = (dx / distance) * maxRadius;
-            dy = (dy / distance) * maxRadius;
-        }
-        
+        if (distance > maxRadius) { dx = (dx / distance) * maxRadius; dy = (dy / distance) * maxRadius; }
         knob.style.transform = `translate(${dx}px, ${dy}px)`;
         knob.style.transition = 'none';
-
-        // حساب الزاوية لتحديد الاتجاهات
         const angle = Math.atan2(dy, dx) * (180 / Math.PI);
         let currentDirs = [];
-
-        // عتبة المسافة لتفعيل الحركة (Deadzone)
         if (distance > maxRadius * 0.2) {
             if (angle > -112.5 && angle < -67.5) currentDirs.push(mapping.U);
             else if (angle > 67.5 && angle < 112.5) currentDirs.push(mapping.D);
             else if (angle > -22.5 && angle < 22.5) currentDirs.push(mapping.R);
             else if (angle > 157.5 || angle < -157.5) currentDirs.push(mapping.L);
-            
-            // الاتجاهات القطرية
             else if (angle >= -67.5 && angle <= -22.5) currentDirs.push(mapping.U, mapping.R);
             else if (angle >= -157.5 && angle <= -112.5) currentDirs.push(mapping.U, mapping.L);
             else if (angle >= 22.5 && angle <= 67.5) currentDirs.push(mapping.D, mapping.R);
@@ -681,7 +594,6 @@ function createAnalogStick(useWasd) {
         }
         updateKeys(currentDirs);
     }
-
     const resetJoystick = (e) => {
         if (controlsEditMode) return;
         e.preventDefault();
@@ -689,10 +601,8 @@ function createAnalogStick(useWasd) {
         knob.style.transition = 'transform 0.2s ease-out';
         updateKeys([]);
     };
-
     base.addEventListener('touchend', resetJoystick, {passive: false});
     base.addEventListener('touchcancel', resetJoystick, {passive: false});
-
     return base;
 }
 
@@ -700,9 +610,7 @@ function createActionButton(keyName) {
     const btn = document.createElement('button');
     const displayText = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
     btn.innerHTML = `<strong>${displayText}</strong>`;
-    
     btn.style.cssText = 'background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:50%;font-family:monospace;font-size:18px;display:flex;justify-content:center;align-items:center;backdrop-filter:blur(4px);box-shadow:0 4px 6px rgba(0,0,0,0.3);touch-action:none;';
-
     const press = (e) => {
         if (controlsEditMode) return;
         e.preventDefault();
@@ -712,51 +620,40 @@ function createActionButton(keyName) {
     const release = (e) => {
         if (controlsEditMode) return;
         e.preventDefault();
-        btn.style.background = 'rgba(255,255,255,0.15)'; 
+        btn.style.background = 'rgba(255,255,255,0.15)';
         triggerRuffleKeyEvent('keyup', keyName);
     };
-
     btn.addEventListener('touchstart', press, {passive: false});
     btn.addEventListener('touchend', release, {passive: false});
     btn.addEventListener('touchcancel', release, {passive: false});
-    
     return btn;
 }
 
-/* ===== GAME PLAYER & VERCEL PROXY ===== */
+/* ===== GAME PLAYER ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
     const canvas = document.getElementById('game-canvas');
     const overlay = document.getElementById('game-overlay');
     const titleEl = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
-
     if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
-
     titleEl.textContent = `▶ ${game.title}`;
     canvas.innerHTML = '';
     overlay.style.display = 'flex';
     player.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     let launched = false;
-
     const launchGame = () => {
         if (launched) return;
         launched = true;
         overlay.style.display = 'none';
         canvas.innerHTML = '';
-
         if (isMobile) {
             player.requestFullscreen?.().catch(()=>{});
             try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
-            
-            if (game.controls) {
-                renderSmartControls(game.id, game.controls, player); 
-            }
+            if (game.controls) renderSmartControls(game.id, game.controls, player);
         }
-
         if (game.type === 'swf') {
             window.RufflePlayer = window.RufflePlayer || {};
             const ruffle = window.RufflePlayer.newest();
@@ -766,13 +663,8 @@ function openGame(game) {
                 p.style.height = '100%';
                 p.style.touchAction = 'none';
                 canvas.appendChild(p);
-
-                // البروكسي الداخلي (بدون corsproxy)
                 let finalUrl = game.src;
-                if (finalUrl.includes('archive.org') || finalUrl.includes('http')) {
-                    finalUrl = '/api/proxy?url=' + encodeURIComponent(game.src);
-                }
-                
+                if (finalUrl.includes('archive.org') || finalUrl.includes('http')) finalUrl = '/api/proxy?url=' + encodeURIComponent(game.src);
                 p.load(finalUrl);
             }
         } else if (game.type === 'iframe') {
@@ -784,9 +676,7 @@ function openGame(game) {
             canvas.appendChild(iframe);
         }
     };
-
     overlay.onclick = () => showPixelLoadingBar(launchGame);
-    
     closeBtn.onclick = () => {
         player.classList.add('hidden');
         canvas.innerHTML = '';
@@ -795,7 +685,6 @@ function openGame(game) {
         document.body.style.overflow = '';
         const smartControls = document.getElementById('smart-controls-wrapper');
         if (smartControls) smartControls.remove();
-        
         try { screen.orientation?.unlock(); } catch(e) {}
         if (document.fullscreenElement) document.exitFullscreen?.();
     };
@@ -807,7 +696,6 @@ function initCarousel() {
     const prev = document.getElementById('carousel-prev');
     const next = document.getElementById('carousel-next');
     if (!grid || !prev || !next) return;
-
     const scrollAmt = () => Math.min(window.innerWidth * 0.75, 300);
     next.addEventListener('click', () => grid.scrollBy({ left: scrollAmt(), behavior: 'smooth' }));
     prev.addEventListener('click', () => grid.scrollBy({ left: -scrollAmt(), behavior: 'smooth' }));
@@ -816,7 +704,7 @@ function initCarousel() {
 function initBgIcons() {
     const layer = document.getElementById('bg-icons-layer');
     if (!layer || window.gamesDatabase.length === 0) return;
-    layer.innerHTML = ''; 
+    layer.innerHTML = '';
     const total = Math.min(window.gamesDatabase.length, 12);
     for (let i = 0; i < total; i++) {
         const game = window.gamesDatabase[i % window.gamesDatabase.length];
@@ -867,7 +755,6 @@ function initFullscreen() {
     const fsBtn = document.getElementById('fullscreen-btn');
     if (!fsBtn) return;
     if (/Android|iPhone|iPad/i.test(navigator.userAgent)) fsBtn.style.display = 'none';
-
     fsBtn.addEventListener('click', () => {
         const player = document.getElementById('game-player');
         if (!player) return;
@@ -881,13 +768,10 @@ function initFullscreen() {
     });
 }
 
-/* ===== SEO: JSON-LD + نص مخفي لجوجل ===== */
+/* ===== SEO: JSON-LD + نص مخفي ===== */
 function injectSEOSchema() {
-    // إزالة أي schema قديم
     document.getElementById('games-schema')?.remove();
     document.getElementById('seo-text-block')?.remove();
-
-    // ===== JSON-LD Schema =====
     const schemaData = {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -906,27 +790,19 @@ function injectSEOSchema() {
                 "contentRating": game.ageRating || '+3',
                 "genre": (game.categories || []).join(', '),
                 "gamePlatform": "Web Browser, Android",
-                "offers": {
-                    "@type": "Offer",
-                    "price": "0",
-                    "priceCurrency": "USD"
-                }
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
             }
         }))
     };
-
     const script = document.createElement('script');
     script.id = 'games-schema';
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify(schemaData);
     document.head.appendChild(script);
-
-    // ===== نص مخفي لجوجل =====
     const seoBlock = document.createElement('div');
     seoBlock.id = 'seo-text-block';
     seoBlock.setAttribute('aria-hidden', 'true');
     seoBlock.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;top:0;';
-
     seoBlock.innerHTML = window.gamesDatabase.map(game => `
         <article>
             <h2>${game.title}</h2>
@@ -936,7 +812,6 @@ function injectSEOSchema() {
             <p>التصنيف: ${(game.categories || []).join(', ')}</p>
         </article>
     `).join('');
-
     document.body.appendChild(seoBlock);
 }
 
