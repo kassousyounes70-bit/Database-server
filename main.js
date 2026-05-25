@@ -70,6 +70,7 @@ async function fetchGamesFromFirebase() {
             }
             
             renderGames();
+            injectSEOSchema(); // ← إضافة SEO لجوجل
             initBgIcons();
             initCarousel();
             initSearch();
@@ -878,6 +879,65 @@ function initFullscreen() {
             fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
         }
     });
+}
+
+/* ===== SEO: JSON-LD + نص مخفي لجوجل ===== */
+function injectSEOSchema() {
+    // إزالة أي schema قديم
+    document.getElementById('games-schema')?.remove();
+    document.getElementById('seo-text-block')?.remove();
+
+    // ===== JSON-LD Schema =====
+    const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "ألعاب Flash الكلاسيكية - NostGames",
+        "description": "قائمة ألعاب Flash و Unity الكلاسيكية المتاحة مجاناً على NostGames",
+        "url": "https://nostagames.vercel.app/",
+        "itemListElement": window.gamesDatabase.map((game, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "item": {
+                "@type": "VideoGame",
+                "name": game.title,
+                "description": game.description || game.description_en || '',
+                "image": game.image,
+                "url": `https://nostagames.vercel.app/?game=${game.id}`,
+                "contentRating": game.ageRating || '+3',
+                "genre": (game.categories || []).join(', '),
+                "gamePlatform": "Web Browser, Android",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                }
+            }
+        }))
+    };
+
+    const script = document.createElement('script');
+    script.id = 'games-schema';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schemaData);
+    document.head.appendChild(script);
+
+    // ===== نص مخفي لجوجل =====
+    const seoBlock = document.createElement('div');
+    seoBlock.id = 'seo-text-block';
+    seoBlock.setAttribute('aria-hidden', 'true');
+    seoBlock.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;top:0;';
+
+    seoBlock.innerHTML = window.gamesDatabase.map(game => `
+        <article>
+            <h2>${game.title}</h2>
+            <p>${game.description || ''}</p>
+            <p>${game.description_en || ''}</p>
+            <p>التصنيف العمري: ${game.ageRating || ''}</p>
+            <p>التصنيف: ${(game.categories || []).join(', ')}</p>
+        </article>
+    `).join('');
+
+    document.body.appendChild(seoBlock);
 }
 
 window.openGame = openGame;
