@@ -1,26 +1,100 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v3.0 (FULL FEATURES)
+   NOSTAGAMES - MAIN ENGINE v4.0 (FIREBASE EDITION)
    ============================================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+
+// إعدادات الربط الخاصة بـ Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyBjy1mH-Mjikc5aiX_oI2uoGHuI0Y1ZptI",
+    authDomain: "n-core-nostagames.firebaseapp.com",
+    databaseURL: "https://n-core-nostagames-default-rtdb.firebaseio.com",
+    projectId: "n-core-nostagames",
+    storageBucket: "n-core-nostagames.firebasestorage.app",
+    messagingSenderId: "705596610155",
+    appId: "1:705596610155:web:8c076439331d4ff604c32e"
+};
+
+// تهيئة Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// مصفوفة الألعاب العامة (تحل محل ملف data.js)
+window.gamesDatabase = [];
+window.secretGames = { games: [] }; 
 
 document.addEventListener("DOMContentLoaded", () => {
     initAdBlockDetection();
     initAppBanner();
     initCounter();
-    renderGames();
-    initBgIcons();
-    NPCSystem.init();
+    
+    // استدعاء الأنظمة المستقلة
+    if (typeof NPCSystem !== 'undefined') NPCSystem.init();
     initScrollReveal();
-    initCarousel();
     initDownloadBtns();
     initFullscreen();
-    initSearch();
-    initRandomGame();
     initShare();
     initSecretCode();
     initBackToTop();
-    initLoadingsBar();
+    if (typeof initLoadingsBar === 'function') initLoadingsBar();
+
+    // جلب الألعاب من قاعدة البيانات ثم تشغيل وظائف الواجهة
+    fetchGamesFromFirebase();
 });
 
+/* =============================================
+   FIREBASE DATA FETCHING
+   ============================================= */
+async function fetchGamesFromFirebase() {
+    const grid = document.getElementById('games-grid');
+    if (grid) grid.innerHTML = '<div class="pixel-loading-text" style="text-align:center; width:100%; padding:20px; color:#f1c40f;">جاري تحميل الألعاب من السيرفر...</div>';
+
+    try {
+        const gamesRef = ref(db, 'games');
+        const snapshot = await get(gamesRef);
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            window.gamesDatabase = [];
+            
+            for (const key in data) {
+                const game = data[key];
+                
+                // تخطي الألعاب المحجوبة أو التي ليس لها رابط تحميل
+                if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
+
+                // تحويل هيكلية Firebase لتتناسب مع مشغل الموقع
+                window.gamesDatabase.push({
+                    id: key,
+                    title: game.name || "بدون اسم",
+                    image: game.iconUrl || "images/icon.png",
+                    src: game.downloadUrl,
+                    ageRating: game.ageRating || "+3",
+                    type: game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
+                    controls: game.controls || null,
+                    description: game.description || ""
+                });
+            }
+            
+            // تهيئة واجهة المستخدم بعد اكتمال تحميل البيانات
+            renderGames();
+            initBgIcons();
+            initCarousel();
+            initSearch();
+            initRandomGame();
+        } else {
+            if (grid) grid.innerHTML = '<div class="no-results">🎮 لا توجد ألعاب متاحة حالياً</div>';
+        }
+    } catch (error) {
+        console.error("خطأ في جلب البيانات من Firebase:", error);
+        if (grid) grid.innerHTML = '<div class="no-results">⚠️ حدث خطأ في الاتصال بقاعدة البيانات</div>';
+    }
+}
+
+/* =============================================
+   ADBLOCK DETECTION
+   ============================================= */
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
     const continueBtn = document.getElementById('adblock-continue-btn');
@@ -52,37 +126,47 @@ function initAdBlockDetection() {
     }, 2000);
 
     function showWall() {
-        wall.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-    continueBtn.addEventListener('click', () => {
-        if (check1() || check2() || check3()) {
-            const box = document.querySelector('.adblock-box');
-            box.style.animation = 'none';
-            box.offsetHeight;
-            box.style.animation = 'wallShake 0.4s ease';
-            document.querySelector('.adblock-note').innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
-        } else {
-            wall.classList.add('hidden');
-            document.body.style.overflow = '';
+        if(wall) {
+            wall.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
-    });
+    }
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            if (check1() || check2() || check3()) {
+                const box = document.querySelector('.adblock-box');
+                if (box) {
+                    box.style.animation = 'none';
+                    box.offsetHeight;
+                    box.style.animation = 'wallShake 0.4s ease';
+                }
+                const note = document.querySelector('.adblock-note');
+                if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
+            } else {
+                if (wall) wall.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    }
 }
 
 function initAppBanner() {
     const banner = document.getElementById('app-banner');
     const closeBtn = document.getElementById('banner-close');
+    if (!banner) return;
     if (sessionStorage.getItem('banner_closed')) {
         banner.classList.add('hidden');
         return;
     }
-    closeBtn.addEventListener('click', () => {
-        banner.style.animation = 'slideUp 0.3s ease forwards';
-        setTimeout(() => {
-            banner.classList.add('hidden');
-            sessionStorage.setItem('banner_closed', '1');
-        }, 300);
-    });
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            banner.style.animation = 'slideUp 0.3s ease forwards';
+            setTimeout(() => {
+                banner.classList.add('hidden');
+                sessionStorage.setItem('banner_closed', '1');
+            }, 300);
+        });
+    }
 }
 
 function initCounter() {
@@ -101,14 +185,15 @@ function initCounter() {
     }, 25);
 }
 
+/* ===== RENDER GAMES ===== */
 function renderGames(filterText = '') {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    let filtered = [...gamesDatabase];
+    let filtered = [...window.gamesDatabase];
     if (filterText.trim() !== '') {
         const lower = filterText.toLowerCase();
-        filtered = gamesDatabase.filter(game => game.title.toLowerCase().includes(lower));
+        filtered = window.gamesDatabase.filter(game => game.title.toLowerCase().includes(lower));
     }
     filtered.forEach((game, idx) => {
         const card = document.createElement('div');
@@ -122,7 +207,7 @@ function renderGames(filterText = '') {
         img.onerror = () => card.remove();
 
         const ageBadge = document.createElement('div');
-        ageBadge.className = `age-badge age-${game.ageRating.replace('+', '')}`;
+        ageBadge.className = `age-badge age-${(game.ageRating || '+3').replace('+', '')}`;
         ageBadge.textContent = game.ageRating;
 
         const titleSpan = document.createElement('div');
@@ -141,6 +226,7 @@ function renderGames(filterText = '') {
     }
 }
 
+/* ===== SEARCH ===== */
 function initSearch() {
     const searchInput = document.getElementById('search-games');
     if (!searchInput) return;
@@ -153,17 +239,19 @@ function initSearch() {
     });
 }
 
+/* ===== RANDOM GAME ===== */
 function initRandomGame() {
     const btn = document.getElementById('random-game-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
-        if (gamesDatabase.length === 0) return;
-        const randomIndex = Math.floor(Math.random() * gamesDatabase.length);
-        const game = gamesDatabase[randomIndex];
+        if (window.gamesDatabase.length === 0) return;
+        const randomIndex = Math.floor(Math.random() * window.gamesDatabase.length);
+        const game = window.gamesDatabase[randomIndex];
         openGame(game);
     });
 }
 
+/* ===== SHARE ===== */
 function initShare() {
     const btn = document.getElementById('share-game-btn');
     if (!btn) return;
@@ -172,7 +260,7 @@ function initShare() {
             navigator.share({
                 title: 'NostGames',
                 text: 'تعال العب ألعاب Flash الكلاسيكية مجاناً!',
-                url: 'https://nostagames.vercel.app/'
+                url: window.location.href
             }).catch(() => {});
         } else {
             alert('مشاركة غير مدعومة في هذا المتصفح');
@@ -180,6 +268,7 @@ function initShare() {
     });
 }
 
+/* ===== SECRET CODE ===== */
 function initSecretCode() {
     let konamiIndex = 0;
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -217,10 +306,10 @@ function initSecretCode() {
 }
 
 function unlockSecretGames() {
-    if (secretGames.games && secretGames.games.length > 0) {
-        const newGames = secretGames.games.filter(g => !gamesDatabase.some(ex => ex.id === g.id));
+    if (window.secretGames && window.secretGames.games && window.secretGames.games.length > 0) {
+        const newGames = window.secretGames.games.filter(g => !window.gamesDatabase.some(ex => ex.id === g.id));
         if (newGames.length) {
-            gamesDatabase.push(...newGames);
+            window.gamesDatabase.push(...newGames);
             renderGames();
             alert('🎉 تم فتح الألعاب السرية! 🎉');
         } else {
@@ -231,6 +320,7 @@ function unlockSecretGames() {
     }
 }
 
+/* ===== BACK TO TOP ===== */
 function initBackToTop() {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
@@ -243,6 +333,7 @@ function initBackToTop() {
     });
 }
 
+/* ===== LOADING BAR ===== */
 function showPixelLoadingBar(onComplete) {
     const barContainer = document.createElement('div');
     barContainer.className = 'pixel-loading-overlay';
@@ -270,12 +361,15 @@ function showPixelLoadingBar(onComplete) {
     }, 80);
 }
 
+/* ===== GAME PLAYER ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
     const canvas = document.getElementById('game-canvas');
     const overlay = document.getElementById('game-overlay');
     const titleEl = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
+
+    if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
 
     titleEl.textContent = `▶ ${game.title}`;
     canvas.innerHTML = '';
@@ -336,6 +430,7 @@ function openGame(game) {
     };
 }
 
+/* ===== CAROUSEL ===== */
 function initCarousel() {
     const grid = document.getElementById('games-grid');
     const prev = document.getElementById('carousel-prev');
@@ -360,13 +455,15 @@ function initCarousel() {
     updateBtns();
 }
 
+/* ===== FLOATING BACKGROUND ICONS ===== */
 function initBgIcons() {
     const layer = document.getElementById('bg-icons-layer');
-    if (!layer || gamesDatabase.length === 0) return;
+    if (!layer || window.gamesDatabase.length === 0) return;
 
-    const total = Math.min(gamesDatabase.length, 12);
+    layer.innerHTML = ''; // تفريغ الطبقة لمنع التكرار
+    const total = Math.min(window.gamesDatabase.length, 12);
     for (let i = 0; i < total; i++) {
-        const game = gamesDatabase[i % gamesDatabase.length];
+        const game = window.gamesDatabase[i % window.gamesDatabase.length];
         const img = document.createElement('img');
         img.src = game.image;
         img.className = 'bg-icon';
@@ -384,6 +481,7 @@ function initBgIcons() {
     }
 }
 
+/* ===== SCROLL REVEAL ===== */
 function initScrollReveal() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -400,6 +498,7 @@ function initScrollReveal() {
     });
 }
 
+/* ===== DOWNLOAD BUTTONS ===== */
 function initDownloadBtns() {
     const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
 
@@ -409,13 +508,14 @@ function initDownloadBtns() {
         if (btn) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                NPCSystem.onDownloadClick();
+                if (typeof NPCSystem !== 'undefined') NPCSystem.onDownloadClick();
                 window.location.href = APK_URL;
             });
         }
     });
 }
 
+/* ===== FULLSCREEN & LANDSCAPE ===== */
 function initFullscreen() {
     const fsBtn = document.getElementById('fullscreen-btn');
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -428,6 +528,8 @@ function initFullscreen() {
 
     fsBtn.addEventListener('click', () => {
         const player = document.getElementById('game-player');
+        if (!player) return;
+        
         if (!document.fullscreenElement) {
             player.requestFullscreen?.();
             fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
@@ -456,5 +558,6 @@ function releaseLandscape() {
     } catch(e) {}
 }
 
+// تصدير الوظائف العامة لاستخدامها في واجهة المستخدم
 window.openGame = openGame;
 window.renderGames = renderGames;
