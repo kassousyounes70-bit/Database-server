@@ -148,7 +148,7 @@ function initCounter() {
     el.textContent = stored.toLocaleString('ar-EG');
 }
 
-/* ===== RENDER GAMES (معدل) ===== */
+/* ===== RENDER GAMES ===== */
 function renderGames(filterText = '') {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
@@ -180,68 +180,50 @@ function renderGames(filterText = '') {
         card.appendChild(img);
         card.appendChild(ageBadge);
         card.appendChild(titleSpan);
-        // التعديل: استدعاء showGamePanel بدلاً من openGame
+        // استدعاء الـ popup modal
         card.addEventListener('click', () => showGamePanel(game));
         grid.appendChild(card);
         setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
     });
 }
 
-/* ===== دالة عرض اللوحة السفلية (PANEL) ===== */
+/* ===== POPUP MODAL (بدل اللوحة السفلية) ===== */
 function showGamePanel(game) {
-    // إغلاق أي لوحة مفتوحة مسبقاً
-    const existingPanel = document.getElementById('game-panel');
-    if (existingPanel) existingPanel.remove();
+    document.getElementById('game-panel')?.remove();
 
-    // تحديد اللغة الحالية
     const lang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
-    let desc = '';
-    if (lang === 'ar') {
-        desc = game.description || game.description_en || '';
-    } else {
-        desc = game.description_en || game.description || '';
-    }
-    if (!desc) desc = 'لا يوجد وصف متاح.';
+    const desc = lang === 'ar'
+        ? (game.description || game.description_en || '')
+        : (game.description_en || game.description || '');
 
-    // إنشاء اللوحة
     const panel = document.createElement('div');
     panel.id = 'game-panel';
-    panel.className = 'game-panel';
+    panel.className = 'game-panel-overlay';
     panel.innerHTML = `
-        <div class="game-panel-inner">
+        <div class="game-panel-modal">
             <button class="panel-close" id="panel-close-btn">✕</button>
             <div class="panel-top">
                 <img src="${game.image}" alt="${game.title}" class="panel-img">
                 <div class="panel-info">
                     <h3 class="panel-title">${game.title}</h3>
-                    <span class="panel-age age-badge age-${(game.ageRating || '+3').replace('+', '')}">${game.ageRating}</span>
-                    <div class="panel-cats">${(game.categories || []).map(c => `<span class="panel-cat">${c}</span>`).join('')}</div>
+                    <span class="panel-age age-badge age-${(game.ageRating||'+3').replace('+','').replace('V','').replace('B','')}">${game.ageRating}</span>
+                    <div class="panel-cats">${(game.categories||[]).map(c=>`<span class="panel-cat">${c}</span>`).join('')}</div>
                 </div>
             </div>
-            <p class="panel-desc">${desc}</p>
-            <button class="panel-play-btn" id="panel-play-btn">
-                ▶ العب الآن
-            </button>
+            <p class="panel-desc">${desc || 'لا يوجد وصف متاح.'}</p>
+            <button class="panel-play-btn" id="panel-play-btn">▶ العب الآن</button>
         </div>
     `;
 
-    // إضافة اللوحة بعد قسم الألعاب
-    const section = document.getElementById('games-section');
-    if (section) {
-        section.insertAdjacentElement('afterend', panel);
-    } else {
-        document.body.appendChild(panel);
-    }
+    document.body.appendChild(panel);
 
-    // تمرير سلس للوحة
-    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    // إغلاق عند الضغط خارج الـ modal
+    panel.addEventListener('click', e => {
+        if (e.target === panel) panel.remove();
+    });
 
-    // أحداث الأزرار
-    const closeBtn = document.getElementById('panel-close-btn');
-    if (closeBtn) closeBtn.onclick = () => panel.remove();
-
-    const playBtn = document.getElementById('panel-play-btn');
-    if (playBtn) playBtn.onclick = () => {
+    document.getElementById('panel-close-btn').onclick = () => panel.remove();
+    document.getElementById('panel-play-btn').onclick = () => {
         panel.remove();
         openGame(game);
     };
