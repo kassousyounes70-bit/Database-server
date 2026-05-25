@@ -1,819 +1,249 @@
-/* =============================================
-   NOSTAGAMES - MAIN ENGINE v8.0 (Analog Stick, Edit Mode, Smart Layout)
-   ============================================= */
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBjy1mH-Mjikc5aiX_oI2uoGHuI0Y1ZptI",
-    authDomain: "n-core-nostagames.firebaseapp.com",
-    databaseURL: "https://n-core-nostagames-default-rtdb.firebaseio.com",
-    projectId: "n-core-nostagames",
-    storageBucket: "n-core-nostagames.firebasestorage.app",
-    messagingSenderId: "705596610155",
-    appId: "1:705596610155:web:8c076439331d4ff604c32e"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-window.gamesDatabase = [];
-window.secretGames = { games: [] }; 
-
-document.addEventListener("DOMContentLoaded", () => {
-    initAdBlockDetection();
-    initAppBanner();
-    initCounter();
+    <title>NostGames - العب ألعاب Flash الكلاسيكية على أندرويد مجاناً</title>
+    <meta name="description" content="NostGames - تطبيق أندرويد مجاني لتشغيل ألعاب Flash و Unity الكلاسيكية. العب أكثر من 30 لعبة أسطورية من طفولتك مباشرة على هاتفك بدون كمبيوتر.">
     
-    if (typeof NPCSystem !== 'undefined') NPCSystem.init();
-    initScrollReveal();
-    initDownloadBtns();
-    initFullscreen();
-    initShare();
-    initSecretCode();
-    initBackToTop();
-    if (typeof initLoadingsBar === 'function') initLoadingsBar();
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://nostagames.vercel.app/">
 
-    fetchGamesFromFirebase();
-});
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nostagames.vercel.app/">
+    <meta property="og:title" content="NostGames - عصر الفلاش الذهبي عاد! 🕹️">
+    <meta property="og:description" content="العب 30+ لعبة Flash كلاسيكية مباشرة على هاتفك الأندرويد. مجاناً 100%!">
+    <meta property="og:image" content="https://nostagames.vercel.app/images/icon.png">
+    <meta name="twitter:card" content="summary_large_image">
 
-/* =============================================
-   FIREBASE DATA FETCHING
-   ============================================= */
-async function fetchGamesFromFirebase() {
-    const grid = document.getElementById('games-grid');
-    if (grid) grid.innerHTML = '<div class="pixel-loading-text" style="text-align:center; width:100%; padding:20px; color:#f1c40f;">جاري تحميل الألعاب من السيرفر...</div>';
+    <link rel="icon" type="image/png" href="images/icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 
-    try {
-        const gamesRef = ref(db, 'games');
-        const snapshot = await get(gamesRef);
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            window.gamesDatabase = [];
-            
-            for (const key in data) {
-                const game = data[key];
-                if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
+    <style class="adBanner" id="adStyleBait">.adBanner-check{display:block;height:1px;}</style>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8579682743838923" crossorigin="anonymous"></script>
 
-                window.gamesDatabase.push({
-                    id: key,
-                    title: game.name || "بدون اسم",
-                    image: game.iconUrl || "images/icon.png",
-                    src: game.downloadUrl,
-                    ageRating: game.ageRating || "+3",
-                    type: game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
-                    controls: game.controls || null,
-                    description: game.description || ""
-                });
-            }
-            
-            renderGames();
-            injectSEOSchema();
-            initBgIcons();
-            initCarousel();
-            initSearch();
-            initRandomGame();
-        } else {
-            if (grid) grid.innerHTML = '<div class="no-results">🎮 لا توجد ألعاب متاحة حالياً</div>';
-        }
-    } catch (error) {
-        console.error("خطأ في جلب البيانات من Firebase:", error);
-        if (grid) grid.innerHTML = '<div class="no-results">⚠️ حدث خطأ في الاتصال بقاعدة البيانات</div>';
-    }
-}
+    </head>
+<body>
 
-/* =============================================
-   ADBLOCK DETECTION & UI ELEMENTS (معدل للبوتات)
-   ============================================= */
-function initAdBlockDetection() {
-    const wall = document.getElementById('adblock-wall');
-    const continueBtn = document.getElementById('adblock-continue-btn');
-    let adBlockDetected = false;
+    <div id="adblock-wall" class="adblock-wall hidden">
+        <div class="adblock-box">
+            <div class="adblock-icon">🚫</div>
+            <h2>تم اكتشاف مانع الإعلانات</h2>
+            <p>الإعلانات هي الطريقة الوحيدة لإبقاء الموقع مجانياً والاستمرار في توفير الألعاب.</p>
+            <p class="adblock-sub">يرجى تعطيل مانع الإعلانات ثم اضغط "متابعة"</p>
+            <div class="adblock-steps">
+                <div class="step"><span>1</span> افتح إضافة AdBlock في المتصفح</div>
+                <div class="step"><span>2</span> اضغط "تعطيل في هذا الموقع"</div>
+                <div class="step"><span>3</span> اضغط زر المتابعة أدناه</div>
+            </div>
+            <button id="adblock-continue-btn" class="adblock-btn">
+                <i class="fa-solid fa-check"></i> عطّلته، متابعة ▶
+            </button>
+            <p class="adblock-note">* الموقع والتطبيق مجانيان تماماً، الإعلانات فقط لدعم التطوير</p>
+        </div>
+    </div>
 
-    function check1() {
-        const bait = document.getElementById('ab-bait1');
-        if (!bait) return true;
-        return bait.offsetHeight === 0 || bait.offsetWidth === 0 || getComputedStyle(bait).display === 'none';
-    }
-    function check2() {
-        const bait = document.getElementById('ab-bait2');
-        if (!bait) return true;
-        return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
-    }
-    
-    // منع ظهور الجدار لعناكب البحث
-    const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
-    setTimeout(() => {
-        if (isBot) return;  // البوتات لا ترى الجدار
-        adBlockDetected = check1() || check2();
-        if (adBlockDetected && wall) {
-            wall.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-    }, 800);
+    <div id="ab-bait1" class="adBanner ad-banner-check" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
+    <div id="ab-bait2" class="adsbox" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
+    <div id="ab-bait3" class="ad-placement" style="position:absolute;width:1px;height:1px;top:-9999px;left:-9999px;"></div>
 
-    if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
-            if (check1() || check2()) {
-                const note = document.querySelector('.adblock-note');
-                if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
-            } else {
-                if (wall) wall.classList.add('hidden');
-                document.body.style.overflow = '';
-            }
-        });
-    }
-}
+    <canvas id="matrix-canvas" class="matrix-bg" aria-hidden="true"></canvas>
+    <div class="crt-overlay" aria-hidden="true"></div>
 
-function initAppBanner() {
-    const banner = document.getElementById('app-banner');
-    const closeBtn = document.getElementById('banner-close');
-    if (!banner) return;
-    if (sessionStorage.getItem('banner_closed')) {
-        banner.classList.add('hidden');
-        return;
-    }
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            banner.classList.add('hidden');
-            sessionStorage.setItem('banner_closed', '1');
-        });
-    }
-}
+    <div class="site-wrapper">
 
-function initCounter() {
-    const el = document.getElementById('counter-num');
-    if (!el) return;
-    const base = 50000;
-    let stored = parseInt(localStorage.getItem('ng_count') || base);
-    stored += Math.floor(Math.random() * 7) + 1;
-    localStorage.setItem('ng_count', stored);
-    el.textContent = stored.toLocaleString('ar-EG');
-}
+        <div class="top-toolbar">
+            <button id="random-game-btn" class="tool-btn" title="لعبة عشوائية"><i class="fa-solid fa-dice"></i> 🎲</button>
+            <button id="share-game-btn" class="tool-btn" title="مشاركة اللعبة"><i class="fa-solid fa-share-alt"></i></button>
+            <div class="search-wrapper">
+                <input type="text" id="search-games" placeholder="🔍 ابحث عن لعبة..." class="search-input">
+            </div>
+        </div>
 
-/* ===== RENDER GAMES ===== */
-function renderGames(filterText = '') {
-    const grid = document.getElementById('games-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    let filtered = [...window.gamesDatabase];
-    if (filterText.trim() !== '') {
-        const lower = filterText.toLowerCase();
-        filtered = window.gamesDatabase.filter(game => game.title.toLowerCase().includes(lower));
-    }
-    filtered.forEach((game, idx) => {
-        const card = document.createElement('div');
-        card.className = 'game-card';
-        card.dataset.id = game.id;
+        <div class="app-banner" id="app-banner">
+            <div class="app-banner-content">
+                <img src="images/icon.png" alt="NostGames" class="banner-icon" onerror="this.style.display='none'">
+                <div class="banner-text">
+                    <strong>📱 تطبيق NostGames للأندرويد متاح الآن!</strong>
+                    <span>العب بدون إنترنت · تحكم لمسي · مجاني 100%</span>
+                </div>
+                <button id="banner-download-btn" class="banner-btn"><i class="fa-solid fa-download"></i> تحميل مجاني</button>
+                <button class="banner-close" id="banner-close" aria-label="إغلاق">✕</button>
+            </div>
+        </div>
 
-        const img = document.createElement('img');
-        img.src = game.image;
-        img.alt = game.title;
-        img.loading = 'lazy';
-        img.onerror = () => card.remove();
+        <div class="ad-slot ad-top" id="ad-top"><span class="ad-label">إعلان</span></div>
 
-        const ageBadge = document.createElement('div');
-        ageBadge.className = `age-badge age-${(game.ageRating || '+3').replace('+', '')}`;
-        ageBadge.textContent = game.ageRating;
+        <header class="hero-section">
+            <div class="hero-content">
+                <img src="images/icon.png" alt="NostGames Logo" class="hero-logo" onerror="this.style.display='none'">
+                <div class="hero-text">
+                    <h1 class="glitch-title" data-text="NOSTAGAMES">NOSTAGAMES</h1>
+                    <p class="hero-tagline">⚡ عصر الفلاش الذهبي عاد! ⚡</p>
+                    <p class="hero-sub">العب 30+ لعبة كلاسيكية مباشرة على هاتفك الأندرويد</p>
 
-        const titleSpan = document.createElement('div');
-        titleSpan.className = 'game-title';
-        titleSpan.textContent = game.title;
-
-        card.appendChild(img);
-        card.appendChild(ageBadge);
-        card.appendChild(titleSpan);
-        card.addEventListener('click', () => showGamePanel(game));
-        grid.appendChild(card);
-        setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
-    });
-}
-
-/* ===== POPUP MODAL ===== */
-function showGamePanel(game) {
-    document.getElementById('game-panel')?.remove();
-
-    const lang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
-    const desc = lang === 'ar'
-        ? (game.description || game.description_en || '')
-        : (game.description_en || game.description || '');
-
-    const panel = document.createElement('div');
-    panel.id = 'game-panel';
-    panel.className = 'game-panel-overlay';
-    panel.innerHTML = `
-        <div class="game-panel-modal">
-            <button class="panel-close" id="panel-close-btn">✕</button>
-            <div class="panel-top">
-                <img src="${game.image}" alt="${game.title}" class="panel-img">
-                <div class="panel-info">
-                    <h3 class="panel-title">${game.title}</h3>
-                    <span class="panel-age age-badge age-${(game.ageRating||'+3').replace('+','').replace('V','').replace('B','')}">${game.ageRating}</span>
-                    <div class="panel-cats">${(game.categories||[]).map(c=>`<span class="panel-cat">${c}</span>`).join('')}</div>
+                    <div class="android-cta">
+                        <div class="android-badge">
+                            <i class="fa-brands fa-android"></i>
+                            <div><span class="badge-small">متاح على </span><span class="badge-big">أندرويد</span></div>
+                        </div>
+                        <button id="download-btn" class="pixel-btn download-btn"><i class="fa-solid fa-mobile-screen"></i><span>تحميل التطبيق مجاناً</span></button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat"><span class="stat-num" id="counter-num">0</span><span class="stat-label">📥 تحميل</span></div>
+                        <div class="stat-divider">|</div>
+                        <div class="stat"><span class="stat-num">30+</span><span class="stat-label">🎮 لعبة</span></div>
+                        <div class="stat-divider">|</div>
+                        <div class="stat"><span class="stat-num">4.8★</span><span class="stat-label">⭐ تقييم</span></div>
+                    </div>
                 </div>
             </div>
-            <p class="panel-desc">${desc || 'لا يوجد وصف متاح.'}</p>
-            <button class="panel-play-btn" id="panel-play-btn">▶ العب الآن</button>
+        </header>
+
+        <main class="main-layout">
+            <aside class="ad-slot ad-sidebar"><span class="ad-label">إعلان</span></aside>
+            <section class="games-section">
+                <h2 class="section-title"><span class="pixel-bracket">[</span> اختر لعبتك <span class="pixel-bracket">]</span></h2>
+                <div class="carousel-controls">
+                    <button id="carousel-prev" class="carousel-btn" aria-label="السابق">&#9664;</button>
+                    <button id="carousel-next" class="carousel-btn" aria-label="التالي">&#9654;</button>
+                </div>
+                <div id="games-grid" class="games-grid">
+                    </div>
+            </section>
+            <aside class="ad-slot ad-sidebar-right"><span class="ad-label">إعلان</span></aside>
+        </main>
+
+        <div id="game-player" class="game-player hidden">
+            <div class="player-header">
+                <span id="playing-title" class="playing-title"></span>
+                <div class="player-btns">
+                    <button id="fullscreen-btn" class="fullscreen-btn" title="ملء الشاشة"><i class="fa-solid fa-expand"></i></button>
+                    <button id="close-btn" class="close-btn"><i class="fa-solid fa-xmark"></i> إغلاق</button>
+                </div>
+            </div>
+            <div id="game-overlay" class="game-overlay">
+                <div class="overlay-content"><div class="overlay-icon">▶</div><p>اضغط للبدء</p><p class="overlay-hint">أو اضغط Space</p></div>
+            </div>
+            <div id="game-canvas" class="game-canvas"></div>
         </div>
-    `;
 
-    document.body.appendChild(panel);
-    panel.addEventListener('click', e => { if (e.target === panel) panel.remove(); });
-    document.getElementById('panel-close-btn').onclick = () => panel.remove();
-    document.getElementById('panel-play-btn').onclick = () => { panel.remove(); openGame(game); };
-}
+        <canvas id="npc-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.55;" aria-hidden="true"></canvas>
 
-function initSearch() {
-    const searchInput = document.getElementById('search-games');
-    if (!searchInput) return;
-    let timeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => renderGames(e.target.value), 300);
-    });
-}
+        <section class="android-section reveal">
+            <div class="android-section-content">
+                <div class="android-info">
+                    <h2>📱 حمّل تطبيق NostGames للأندرويد</h2>
+                    <p>استمتع بتجربة ألعاب Flash الكلاسيكية على هاتفك بميزات حصرية!</p>
+                    <ul class="android-features">
+                        <li><i class="fa-solid fa-check"></i> تشغيل بدون إنترنت</li>
+                        <li><i class="fa-solid fa-check"></i> تحكم لمسي محسّن</li>
+                        <li><i class="fa-solid fa-check"></i> 30+ لعبة كلاسيكية</li>
+                        <li><i class="fa-solid fa-check"></i> مجاني 100%</li>
+                    </ul>
+                    <button id="android-download-btn" class="pixel-btn download-btn android-dl-btn"><i class="fa-brands fa-android"></i><span>تحميل APK مجاناً</span></button>
+                    <p class="apk-note">⚠️ قد تحتاج لتفعيل "مصادر غير معروفة"</p>
+                </div>
+                <div class="android-mockup"><img src="images/icon.png" alt="NostGames Android App" class="mockup-img"></div>
+            </div>
+        </section>
 
-function initRandomGame() {
-    const btn = document.getElementById('random-game-btn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        if (window.gamesDatabase.length === 0) return;
-        openGame(window.gamesDatabase[Math.floor(Math.random() * window.gamesDatabase.length)]);
-    });
-}
+        <div class="ad-slot ad-mid"><span class="ad-label">إعلان</span></div>
 
-function initShare() {
-    const btn = document.getElementById('share-game-btn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        if (navigator.share) {
-            navigator.share({ title: 'NostGames', text: 'العب ألعاب Flash مجاناً!', url: window.location.href }).catch(() => {});
-        }
-    });
-}
+        <section class="features-section">
+            <div class="features-grid">
+                <div class="feature-card reveal"><div class="feature-icon">⚡</div><h3>سريع وخفيف</h3><p>تشغيل فوري</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">🎮</div><h3>30+ لعبة</h3><p>Flash كلاسيكية</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">📱</div><h3>أندرويد</h3><p>تحكم لمسي</p></div>
+                <div class="feature-card reveal"><div class="feature-icon">🆓</div><h3>مجاني 100%</h3><p>بدون اشتراك</p></div>
+            </div>
+        </section>
 
-function initSecretCode() {
-    let konamiIndex = 0;
-    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    window.addEventListener('keydown', (e) => {
-        const key = e.key === 'b' || e.key === 'a' ? e.key.toLowerCase() : e.key;
-        if (key === konamiCode[konamiIndex]) {
-            konamiIndex++;
-            if (konamiIndex === konamiCode.length) {
-                unlockSecretGames();
-                konamiIndex = 0;
-            }
-        } else {
-            konamiIndex = 0;
-        }
-    });
+        <section class="social-section">
+            <h3 class="section-title" style="font-size:0.7rem;">[ تابعنا ]</h3>
+            <div class="social-links">
+                <a href="https://t.me/Nostagames" target="_blank" class="social-btn telegram"><i class="fa-brands fa-telegram"></i> تيليجرام</a>
+                <a href="https://ig.me/j/AbbFojH8OYaP8HDa/" target="_blank" class="social-btn instagram"><i class="fa-brands fa-instagram"></i> انستقرام</a>
+            </div>
+        </section>
 
-    const logo = document.querySelector('.hero-logo');
-    if (logo) {
-        let tapCount = 0;
-        let tapTimer;
-        logo.addEventListener('click', () => {
-            if (window.innerWidth > 768) return;
-            tapCount++;
-            clearTimeout(tapTimer);
-            tapTimer = setTimeout(() => { tapCount = 0; }, 1000);
-            if (tapCount === 5) {
-                const pass = prompt('🔐 أدخل كلمة السر السريعة:');
-                if (pass === 'nostagames') unlockSecretGames();
-                tapCount = 0;
-            }
-        });
-    }
-}
+        <div class="ad-slot ad-bottom"><span class="ad-label">إعلان</span></div>
 
-function unlockSecretGames() {
-    if (window.secretGames && window.secretGames.games && window.secretGames.games.length > 0) {
-        const newGames = window.secretGames.games.filter(g => !window.gamesDatabase.some(ex => ex.id === g.id));
-        if (newGames.length) {
-            window.gamesDatabase.push(...newGames);
-            renderGames();
-            alert('🎉 تم فتح الألعاب السرية! 🎉');
-        } else {
-            alert('✨ كود سري صحيح! لكن لا توجد ألعاب سرية جديدة حالياً.');
-        }
-    } else {
-        alert('🔓 كود سري صحيح! سيتم إضافة ألعاب سرية قريباً.');
-    }
-}
+        <footer class="site-footer">
+            <p>© 2025 NostGames · جميع الحقوق محفوظة</p>
+            <div class="footer-links">
+                <a href="#" id="about-us-link">من نحن</a> |
+                <a href="privacy.html">سياسة الخصوصية</a> |
+                <a href="contact.html">اتصل بنا</a>
+            </div>
+            <p class="footer-email">📧 البريد الإلكتروني: <a href="mailto:kassousyounes70@gmail.com">kassousyounes70@gmail.com</a></p>
+            <p class="footer-sub">صُنع بـ ❤️ لمحبي ألعاب الطفولة · تطبيق أندرويد مجاني</p>
+        </footer>
+    </div>
 
-function initBackToTop() {
-    const btn = document.getElementById('back-to-top');
-    if (!btn) return;
-    window.addEventListener('scroll', () => {
-        btn.style.display = window.scrollY > 500 ? 'flex' : 'none';
-    });
-    btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-}
-
-function showPixelLoadingBar(onComplete) {
-    const barContainer = document.createElement('div');
-    barContainer.className = 'pixel-loading-overlay';
-    barContainer.innerHTML = `
-        <div class="pixel-loading-container" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;background:rgba(0,0,0,0.8);padding:20px;border:2px solid #fff;">
-            <div style="color:#0f0;font-family:monospace;margin-bottom:10px;">LOADING...</div>
-            <div style="width:200px;height:20px;border:2px solid #fff;"><div class="fill" style="width:0%;height:100%;background:#0f0;"></div></div>
+    <div id="about-overlay" class="about-overlay hidden">
+        <div class="about-content">
+            <button class="about-close">&times;</button>
+            <h2>📖 من نحن؟</h2>
+            <p>NostGames هو مشروع عربي يهدف إلى إحياء ألعاب Flash الكلاسيكية التي شكلت طفولتنا. نقدم أكثر من 30 لعبة أسطورية تعمل مباشرة على متصفح هاتفك أو عبر تطبيق أندرويد مجاني.</p>
+            <p>نؤمن بأن الألعاب القديمة تستحق أن تبقى حية، فريقنا صغير وكل الدعم من الإعلانات يساعدنا على الاستمرار.</p>
+            <p>شكراً لكونك جزءاً من رحلة الحنين هذه! 🎮</p>
         </div>
-    `;
-    document.body.appendChild(barContainer);
-    let width = 0;
-    const interval = setInterval(() => {
-        width += Math.random() * 30 + 10;
-        if (width >= 100) {
-            clearInterval(interval);
-            setTimeout(() => { barContainer.remove(); if (onComplete) onComplete(); }, 200);
-        }
-        const fill = barContainer.querySelector('.fill');
-        if (fill) fill.style.width = Math.min(width, 100) + '%';
-    }, 50);
-}
+    </div>
 
-/* ===== KEYBOARD EVENT SIMULATOR ===== */
-const KEY_DICT = {
-    'A': { code: 65, key: 'a', codeStr: 'KeyA' }, 'B': { code: 66, key: 'b', codeStr: 'KeyB' },
-    'C': { code: 67, key: 'c', codeStr: 'KeyC' }, 'D': { code: 68, key: 'd', codeStr: 'KeyD' },
-    'E': { code: 69, key: 'e', codeStr: 'KeyE' }, 'F': { code: 70, key: 'f', codeStr: 'KeyF' },
-    'G': { code: 71, key: 'g', codeStr: 'KeyG' }, 'H': { code: 72, key: 'h', codeStr: 'KeyH' },
-    'I': { code: 73, key: 'i', codeStr: 'KeyI' }, 'J': { code: 74, key: 'j', codeStr: 'KeyJ' },
-    'K': { code: 75, key: 'k', codeStr: 'KeyK' }, 'L': { code: 76, key: 'l', codeStr: 'KeyL' },
-    'M': { code: 77, key: 'm', codeStr: 'KeyM' }, 'N': { code: 78, key: 'n', codeStr: 'KeyN' },
-    'O': { code: 79, key: 'o', codeStr: 'KeyO' }, 'P': { code: 80, key: 'p', codeStr: 'KeyP' },
-    'Q': { code: 81, key: 'q', codeStr: 'KeyQ' }, 'R': { code: 82, key: 'r', codeStr: 'KeyR' },
-    'S': { code: 83, key: 's', codeStr: 'KeyS' }, 'T': { code: 84, key: 't', codeStr: 'KeyT' },
-    'U': { code: 85, key: 'u', codeStr: 'KeyU' }, 'V': { code: 86, key: 'v', codeStr: 'KeyV' },
-    'W': { code: 87, key: 'w', codeStr: 'KeyW' }, 'X': { code: 88, key: 'x', codeStr: 'KeyX' },
-    'Y': { code: 89, key: 'y', codeStr: 'KeyY' }, 'Z': { code: 90, key: 'z', codeStr: 'KeyZ' },
-    'SPACE': { code: 32, key: ' ', codeStr: 'Space' },
-    'UP': { code: 38, key: 'ArrowUp', codeStr: 'ArrowUp' },
-    'DOWN': { code: 40, key: 'ArrowDown', codeStr: 'ArrowDown' },
-    'LEFT': { code: 37, key: 'ArrowLeft', codeStr: 'ArrowLeft' },
-    'RIGHT': { code: 39, key: 'ArrowRight', codeStr: 'ArrowRight' }
-};
+    <button id="back-to-top" class="back-to-top" style="display: none;"><i class="fa-solid fa-arrow-up"></i></button>
 
-function triggerRuffleKeyEvent(type, keyName) {
-    const keyData = KEY_DICT[keyName.toUpperCase()];
-    if (!keyData) return;
-    const event = new KeyboardEvent(type, {
-        bubbles: true, cancelable: true,
-        keyCode: keyData.code, which: keyData.code,
-        key: keyData.key, code: keyData.codeStr
-    });
-    window.dispatchEvent(event);
-    const rufflePlayer = document.querySelector('ruffle-player');
-    if (rufflePlayer) rufflePlayer.dispatchEvent(event);
-}
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    <script src="npc.js"></script>
+    <script type="module" src="main.js"></script>
+    <script>
+        // Matrix Background Script
+        (function matrixBg() {
+            const canvas = document.getElementById('matrix-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let w, h;
+            function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize);
+            resize();
 
-/* ===== SMART CONTROLS ===== */
-let currentEditTarget = null;
-let controlsEditMode = false;
+            const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzあいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+            const fontSize = 14;
+            let columns = Math.floor(w / fontSize);
+            let drops = Array(columns).fill(1);
 
-function renderSmartControls(gameId, controlsData, container) {
-    if (!controlsData || (!controlsData.p1 && !controlsData.wasd)) return;
-    const p1 = controlsData.p1 || {};
-    const useWasd = controlsData.wasd === true;
-    let hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
-    const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
-    const wrapper = document.createElement('div');
-    wrapper.id = 'smart-controls-wrapper';
-    wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;direction:ltr;';
-    const toolbar = document.createElement('div');
-    toolbar.id = 'controls-toolbar';
-    toolbar.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:15px;pointer-events:auto;z-index:10000;background:rgba(0,0,0,0.6);padding:5px 15px;border-radius:20px;backdrop-filter:blur(5px);';
-    const swapBtn = document.createElement('button');
-    swapBtn.innerHTML = '<i class="fa-solid fa-arrows-left-right"></i>';
-    swapBtn.className = 'ctrl-toolbar-btn';
-    const editBtn = document.createElement('button');
-    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-    editBtn.className = 'ctrl-toolbar-btn';
-    const saveBtn = document.createElement('button');
-    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ';
-    saveBtn.className = 'ctrl-toolbar-btn';
-    saveBtn.style.display = 'none';
-    const sizePlusBtn = document.createElement('button');
-    sizePlusBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-plus"></i>';
-    sizePlusBtn.className = 'ctrl-toolbar-btn';
-    sizePlusBtn.style.display = 'none';
-    const sizeMinusBtn = document.createElement('button');
-    sizeMinusBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-minus"></i>';
-    sizeMinusBtn.className = 'ctrl-toolbar-btn';
-    sizeMinusBtn.style.display = 'none';
-    const btnStyle = 'background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;padding:5px;';
-    [swapBtn, editBtn, saveBtn, sizePlusBtn, sizeMinusBtn].forEach(b => b.style.cssText += btnStyle);
-    toolbar.appendChild(swapBtn);
-    toolbar.appendChild(editBtn);
-    toolbar.appendChild(sizeMinusBtn);
-    toolbar.appendChild(sizePlusBtn);
-    toolbar.appendChild(saveBtn);
-    wrapper.appendChild(toolbar);
-    const elementsContainer = document.createElement('div');
-    elementsContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
-    wrapper.appendChild(elementsContainer);
-    let savedLayout = JSON.parse(localStorage.getItem('nosta_ctrls_' + gameId));
-    let layoutMap = {};
-    if (!savedLayout) {
-        if (hasJoystick) layoutMap['JOYSTICK'] = { x: 10, y: 60, size: 120 };
-        const centerX = 80, centerY = 70, radius = 12;
-        if (actionKeys.length === 1) layoutMap[actionKeys[0]] = { x: centerX, y: centerY, size: 60 };
-        else if (actionKeys.length === 2) {
-            layoutMap[actionKeys[0]] = { x: centerX - 8, y: centerY + 5, size: 60 };
-            layoutMap[actionKeys[1]] = { x: centerX + 8, y: centerY - 5, size: 60 };
-        } else if (actionKeys.length === 3) {
-            layoutMap[actionKeys[0]] = { x: centerX - 8, y: centerY + 8, size: 60 };
-            layoutMap[actionKeys[1]] = { x: centerX + 8, y: centerY + 8, size: 60 };
-            layoutMap[actionKeys[2]] = { x: centerX, y: centerY - 10, size: 60 };
-        } else if (actionKeys.length === 4) {
-            layoutMap[actionKeys[0]] = { x: centerX, y: centerY + 12, size: 60 };
-            layoutMap[actionKeys[1]] = { x: centerX - 10, y: centerY, size: 60 };
-            layoutMap[actionKeys[2]] = { x: centerX, y: centerY - 12, size: 60 };
-            layoutMap[actionKeys[3]] = { x: centerX + 10, y: centerY, size: 60 };
-        } else {
-            const angleStep = (2 * Math.PI) / actionKeys.length;
-            actionKeys.forEach((key, index) => {
-                const angle = index * angleStep;
-                layoutMap[key] = { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle), size: 55 };
-            });
-        }
-    } else {
-        layoutMap = savedLayout;
-    }
-    let controlElements = [];
-    if (hasJoystick) {
-        const joyData = layoutMap['JOYSTICK'] || { x: 10, y: 60, size: 120 };
-        const joy = createAnalogStick(useWasd);
-        applyElementStyle(joy, joyData.x, joyData.y, joyData.size);
-        joy.dataset.id = 'JOYSTICK';
-        elementsContainer.appendChild(joy);
-        controlElements.push(joy);
-    }
-    actionKeys.forEach(key => {
-        const btnData = layoutMap[key] || { x: 50, y: 50, size: 60 };
-        const btn = createActionButton(key);
-        applyElementStyle(btn, btnData.x, btnData.y, btnData.size);
-        btn.dataset.id = key;
-        elementsContainer.appendChild(btn);
-        controlElements.push(btn);
-    });
-    container.appendChild(wrapper);
-    swapBtn.onclick = () => {
-        controlElements.forEach(el => {
-            const currentX = parseFloat(el.style.left);
-            el.style.left = (100 - currentX - (parseFloat(el.style.width)/window.innerWidth*100)) + '%';
-        });
-    };
-    editBtn.onclick = () => {
-        controlsEditMode = true;
-        editBtn.style.display = 'none';
-        swapBtn.style.display = 'none';
-        saveBtn.style.display = 'block';
-        sizePlusBtn.style.display = 'block';
-        sizeMinusBtn.style.display = 'block';
-        wrapper.style.backgroundColor = 'rgba(0,0,0,0.4)';
-        controlElements.forEach(el => {
-            el.classList.add('edit-mode');
-            el.style.border = '2px dashed #0f0';
-        });
-    };
-    saveBtn.onclick = () => {
-        controlsEditMode = false;
-        currentEditTarget = null;
-        editBtn.style.display = 'block';
-        swapBtn.style.display = 'block';
-        saveBtn.style.display = 'none';
-        sizePlusBtn.style.display = 'none';
-        sizeMinusBtn.style.display = 'none';
-        wrapper.style.backgroundColor = 'transparent';
-        const newLayout = {};
-        controlElements.forEach(el => {
-            el.classList.remove('edit-mode');
-            el.style.border = el.dataset.id === 'JOYSTICK' ? '2px solid rgba(255,255,255,0.3)' : '2px solid rgba(255,255,255,0.5)';
-            newLayout[el.dataset.id] = {
-                x: parseFloat(el.style.left),
-                y: parseFloat(el.style.top),
-                size: parseFloat(el.style.width)
-            };
-        });
-        localStorage.setItem('nosta_ctrls_' + gameId, JSON.stringify(newLayout));
-    };
-    sizePlusBtn.onclick = () => {
-        if (currentEditTarget) {
-            let s = parseFloat(currentEditTarget.style.width) + 5;
-            currentEditTarget.style.width = s + 'px';
-            currentEditTarget.style.height = s + 'px';
-        }
-    };
-    sizeMinusBtn.onclick = () => {
-        if (currentEditTarget) {
-            let s = Math.max(30, parseFloat(currentEditTarget.style.width) - 5);
-            currentEditTarget.style.width = s + 'px';
-            currentEditTarget.style.height = s + 'px';
-        }
-    };
-    controlElements.forEach(el => {
-        let isDragging = false;
-        let startX, startY, initialLeft, initialTop;
-        el.addEventListener('touchstart', (e) => {
-            if (!controlsEditMode) return;
-            e.preventDefault();
-            currentEditTarget = el;
-            controlElements.forEach(c => c.style.borderColor = c.dataset.id === 'JOYSTICK' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)');
-            el.style.borderColor = '#ff0';
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            initialLeft = parseFloat(el.style.left) / 100 * window.innerWidth;
-            initialTop = parseFloat(el.style.top) / 100 * window.innerHeight;
-        }, {passive: false});
-        el.addEventListener('touchmove', (e) => {
-            if (!isDragging || !controlsEditMode) return;
-            e.preventDefault();
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            const newLeft = ((initialLeft + dx) / window.innerWidth) * 100;
-            const newTop = ((initialTop + dy) / window.innerHeight) * 100;
-            el.style.left = Math.max(0, Math.min(newLeft, 90)) + '%';
-            el.style.top = Math.max(0, Math.min(newTop, 90)) + '%';
-        }, {passive: false});
-        el.addEventListener('touchend', () => { isDragging = false; });
-    });
-}
-
-function applyElementStyle(el, x, y, size) {
-    el.style.position = 'absolute';
-    el.style.left = x + '%';
-    el.style.top = y + '%';
-    el.style.width = size + 'px';
-    el.style.height = size + 'px';
-    el.style.pointerEvents = 'auto';
-}
-
-function createAnalogStick(useWasd) {
-    const base = document.createElement('div');
-    base.style.cssText = 'background:rgba(255,255,255,0.1);border-radius:50%;position:relative;border:2px solid rgba(255,255,255,0.3);box-shadow:inset 0 0 20px rgba(0,0,0,0.5);backdrop-filter:blur(4px);touch-action:none;';
-    const knob = document.createElement('div');
-    knob.style.cssText = 'width:40%;height:40%;background:rgba(255,255,255,0.5);border-radius:50%;position:absolute;top:30%;left:30%;box-shadow:0 4px 10px rgba(0,0,0,0.5);transition:transform 0.1s ease-out;';
-    base.appendChild(knob);
-    let activeKeys = [];
-    const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
-    const updateKeys = (newKeys) => {
-        activeKeys.forEach(k => { if (!newKeys.includes(k)) triggerRuffleKeyEvent('keyup', k); });
-        newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
-        activeKeys = newKeys;
-    };
-    base.addEventListener('touchstart', handleJoystick, {passive: false});
-    base.addEventListener('touchmove', handleJoystick, {passive: false});
-    function handleJoystick(e) {
-        if (controlsEditMode) return;
-        e.preventDefault();
-        const rect = base.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const maxRadius = rect.width / 2;
-        let dx = e.touches[0].clientX - centerX;
-        let dy = e.touches[0].clientY - centerY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        if (distance > maxRadius) { dx = (dx / distance) * maxRadius; dy = (dy / distance) * maxRadius; }
-        knob.style.transform = `translate(${dx}px, ${dy}px)`;
-        knob.style.transition = 'none';
-        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-        let currentDirs = [];
-        if (distance > maxRadius * 0.2) {
-            if (angle > -112.5 && angle < -67.5) currentDirs.push(mapping.U);
-            else if (angle > 67.5 && angle < 112.5) currentDirs.push(mapping.D);
-            else if (angle > -22.5 && angle < 22.5) currentDirs.push(mapping.R);
-            else if (angle > 157.5 || angle < -157.5) currentDirs.push(mapping.L);
-            else if (angle >= -67.5 && angle <= -22.5) currentDirs.push(mapping.U, mapping.R);
-            else if (angle >= -157.5 && angle <= -112.5) currentDirs.push(mapping.U, mapping.L);
-            else if (angle >= 22.5 && angle <= 67.5) currentDirs.push(mapping.D, mapping.R);
-            else if (angle >= 112.5 && angle <= 157.5) currentDirs.push(mapping.D, mapping.L);
-        }
-        updateKeys(currentDirs);
-    }
-    const resetJoystick = (e) => {
-        if (controlsEditMode) return;
-        e.preventDefault();
-        knob.style.transform = `translate(0px, 0px)`;
-        knob.style.transition = 'transform 0.2s ease-out';
-        updateKeys([]);
-    };
-    base.addEventListener('touchend', resetJoystick, {passive: false});
-    base.addEventListener('touchcancel', resetJoystick, {passive: false});
-    return base;
-}
-
-function createActionButton(keyName) {
-    const btn = document.createElement('button');
-    const displayText = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
-    btn.innerHTML = `<strong>${displayText}</strong>`;
-    btn.style.cssText = 'background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:50%;font-family:monospace;font-size:18px;display:flex;justify-content:center;align-items:center;backdrop-filter:blur(4px);box-shadow:0 4px 6px rgba(0,0,0,0.3);touch-action:none;';
-    const press = (e) => {
-        if (controlsEditMode) return;
-        e.preventDefault();
-        btn.style.background = 'rgba(255,255,255,0.5)';
-        triggerRuffleKeyEvent('keydown', keyName);
-    };
-    const release = (e) => {
-        if (controlsEditMode) return;
-        e.preventDefault();
-        btn.style.background = 'rgba(255,255,255,0.15)';
-        triggerRuffleKeyEvent('keyup', keyName);
-    };
-    btn.addEventListener('touchstart', press, {passive: false});
-    btn.addEventListener('touchend', release, {passive: false});
-    btn.addEventListener('touchcancel', release, {passive: false});
-    return btn;
-}
-
-/* ===== GAME PLAYER ===== */
-function openGame(game) {
-    const player = document.getElementById('game-player');
-    const canvas = document.getElementById('game-canvas');
-    const overlay = document.getElementById('game-overlay');
-    const titleEl = document.getElementById('playing-title');
-    const closeBtn = document.getElementById('close-btn');
-    if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
-    titleEl.textContent = `▶ ${game.title}`;
-    canvas.innerHTML = '';
-    overlay.style.display = 'flex';
-    player.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    let launched = false;
-    const launchGame = () => {
-        if (launched) return;
-        launched = true;
-        overlay.style.display = 'none';
-        canvas.innerHTML = '';
-        if (isMobile) {
-            player.requestFullscreen?.().catch(()=>{});
-            try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
-            if (game.controls) renderSmartControls(game.id, game.controls, player);
-        }
-        if (game.type === 'swf') {
-            window.RufflePlayer = window.RufflePlayer || {};
-            const ruffle = window.RufflePlayer.newest();
-            if (ruffle) {
-                const p = ruffle.createPlayer();
-                p.style.width = '100%';
-                p.style.height = '100%';
-                p.style.touchAction = 'none';
-                canvas.appendChild(p);
-                let finalUrl = game.src;
-                if (finalUrl.includes('archive.org') || finalUrl.includes('http')) finalUrl = '/api/proxy?url=' + encodeURIComponent(game.src);
-                p.load(finalUrl);
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#0f0';
+                ctx.font = `${fontSize}px monospace`;
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > h && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+                requestAnimationFrame(draw);
             }
-        } else if (game.type === 'iframe') {
-            const iframe = document.createElement('iframe');
-            iframe.src = game.src;
-            iframe.allowFullscreen = true;
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            canvas.appendChild(iframe);
-        }
-    };
-    overlay.onclick = () => showPixelLoadingBar(launchGame);
-    closeBtn.onclick = () => {
-        player.classList.add('hidden');
-        canvas.innerHTML = '';
-        launched = false;
-        overlay.style.display = 'flex';
-        document.body.style.overflow = '';
-        const smartControls = document.getElementById('smart-controls-wrapper');
-        if (smartControls) smartControls.remove();
-        try { screen.orientation?.unlock(); } catch(e) {}
-        if (document.fullscreenElement) document.exitFullscreen?.();
-    };
-}
+            draw();
+        })();
 
-/* ===== UI HELPERS ===== */
-function initCarousel() {
-    const grid = document.getElementById('games-grid');
-    const prev = document.getElementById('carousel-prev');
-    const next = document.getElementById('carousel-next');
-    if (!grid || !prev || !next) return;
-    const scrollAmt = () => Math.min(window.innerWidth * 0.75, 300);
-    next.addEventListener('click', () => grid.scrollBy({ left: scrollAmt(), behavior: 'smooth' }));
-    prev.addEventListener('click', () => grid.scrollBy({ left: -scrollAmt(), behavior: 'smooth' }));
-}
-
-function initBgIcons() {
-    const layer = document.getElementById('bg-icons-layer');
-    if (!layer || window.gamesDatabase.length === 0) return;
-    layer.innerHTML = '';
-    const total = Math.min(window.gamesDatabase.length, 12);
-    for (let i = 0; i < total; i++) {
-        const game = window.gamesDatabase[i % window.gamesDatabase.length];
-        const img = document.createElement('img');
-        img.src = game.image;
-        img.className = 'bg-icon';
-        img.onerror = () => img.remove();
-        img.style.left = (Math.random() * 95) + '%';
-        img.style.animationDuration = (14 + Math.random() * 18) + 's';
-        img.style.animationDelay = '-' + (Math.random() * 14) + 's';
-        const size = (38 + Math.random() * 28) + 'px';
-        img.style.width = size;
-        img.style.height = size;
-        layer.appendChild(img);
-    }
-}
-
-function initScrollReveal() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.feature-card, .section-title, .android-section, .reveal').forEach(el => {
-        el.classList.add('reveal');
-        observer.observe(el);
-    });
-}
-
-function initDownloadBtns() {
-    const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
-    ['download-btn', 'android-download-btn', 'banner-download-btn'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', (e) => {
+        // About overlay logic
+        const aboutLink = document.getElementById('about-us-link');
+        const aboutOverlay = document.getElementById('about-overlay');
+        const aboutClose = document.querySelector('.about-close');
+        if (aboutLink && aboutOverlay) {
+            aboutLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (typeof NPCSystem !== 'undefined') NPCSystem.onDownloadClick();
-                window.location.href = APK_URL;
+                aboutOverlay.classList.remove('hidden');
             });
+            if (aboutClose) aboutClose.addEventListener('click', () => aboutOverlay.classList.add('hidden'));
+            aboutOverlay.addEventListener('click', (e) => { if (e.target === aboutOverlay) aboutOverlay.classList.add('hidden'); });
         }
-    });
-}
+    </script>
 
-function initFullscreen() {
-    const fsBtn = document.getElementById('fullscreen-btn');
-    if (!fsBtn) return;
-    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) fsBtn.style.display = 'none';
-    fsBtn.addEventListener('click', () => {
-        const player = document.getElementById('game-player');
-        if (!player) return;
-        if (!document.fullscreenElement) {
-            player.requestFullscreen?.();
-            fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-        } else {
-            document.exitFullscreen?.();
-            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-        }
-    });
-}
-
-/* ===== SEO: JSON-LD + نص مخفي ===== */
-function injectSEOSchema() {
-    document.getElementById('games-schema')?.remove();
-    document.getElementById('seo-text-block')?.remove();
-    const schemaData = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": "ألعاب Flash الكلاسيكية - NostGames",
-        "description": "قائمة ألعاب Flash و Unity الكلاسيكية المتاحة مجاناً على NostGames",
-        "url": "https://nostagames.vercel.app/",
-        "itemListElement": window.gamesDatabase.map((game, index) => ({
-            "@type": "ListItem",
-            "position": index + 1,
-            "item": {
-                "@type": "VideoGame",
-                "name": game.title,
-                "description": game.description || game.description_en || '',
-                "image": game.image,
-                "url": `https://nostagames.vercel.app/?game=${game.id}`,
-                "contentRating": game.ageRating || '+3',
-                "genre": (game.categories || []).join(', '),
-                "gamePlatform": "Web Browser, Android",
-                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-            }
-        }))
-    };
-    const script = document.createElement('script');
-    script.id = 'games-schema';
-    script.type = 'application/ld+json';
-    script.textContent = JSON.stringify(schemaData);
-    document.head.appendChild(script);
-    const seoBlock = document.createElement('div');
-    seoBlock.id = 'seo-text-block';
-    seoBlock.setAttribute('aria-hidden', 'true');
-    seoBlock.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;top:0;';
-    seoBlock.innerHTML = window.gamesDatabase.map(game => `
-        <article>
-            <h2>${game.title}</h2>
-            <p>${game.description || ''}</p>
-            <p>${game.description_en || ''}</p>
-            <p>التصنيف العمري: ${game.ageRating || ''}</p>
-            <p>التصنيف: ${(game.categories || []).join(', ')}</p>
-        </article>
-    `).join('');
-    document.body.appendChild(seoBlock);
-}
-
-window.openGame = openGame;
-window.renderGames = renderGames;
+    </body>
+</html>
