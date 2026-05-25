@@ -1,5 +1,5 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v6.0 (SMART CONTROLS & CORS BYPASS)
+   NOSTAGAMES - MAIN ENGINE v7.0 (Vercel Proxy & Smart Controls)
    ============================================= */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -216,8 +216,54 @@ function initShare() {
 }
 
 function initSecretCode() {
-    // Secret code logic remains same
+    let konamiIndex = 0;
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    window.addEventListener('keydown', (e) => {
+        const key = e.key === 'b' || e.key === 'a' ? e.key.toLowerCase() : e.key;
+        if (key === konamiCode[konamiIndex]) {
+            konamiIndex++;
+            if (konamiIndex === konamiCode.length) {
+                unlockSecretGames();
+                konamiIndex = 0;
+            }
+        } else {
+            konamiIndex = 0;
+        }
+    });
+
+    const logo = document.querySelector('.hero-logo');
+    if (logo) {
+        let tapCount = 0;
+        let tapTimer;
+        logo.addEventListener('click', () => {
+            if (window.innerWidth > 768) return;
+            tapCount++;
+            clearTimeout(tapTimer);
+            tapTimer = setTimeout(() => { tapCount = 0; }, 1000);
+            if (tapCount === 5) {
+                const pass = prompt('🔐 أدخل كلمة السر السريعة:');
+                if (pass === 'nostagames') unlockSecretGames();
+                tapCount = 0;
+            }
+        });
+    }
 }
+
+function unlockSecretGames() {
+    if (window.secretGames && window.secretGames.games && window.secretGames.games.length > 0) {
+        const newGames = window.secretGames.games.filter(g => !window.gamesDatabase.some(ex => ex.id === g.id));
+        if (newGames.length) {
+            window.gamesDatabase.push(...newGames);
+            renderGames();
+            alert('🎉 تم فتح الألعاب السرية! 🎉');
+        } else {
+            alert('✨ كود سري صحيح! لكن لا توجد ألعاب سرية جديدة حالياً.');
+        }
+    } else {
+        alert('🔓 كود سري صحيح! سيتم إضافة ألعاب سرية قريباً.');
+    }
+}
+
 function initBackToTop() {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
@@ -258,15 +304,12 @@ function renderSmartControls(controlsData, container) {
     const p1 = controlsData.p1 || {};
     let hasJoystick = p1.hasOwnProperty('JOYSTICK') || controlsData.wasd === true;
     
-    // فلترة أزرار الأكشن (استبعاد عصا التحكم من القائمة)
     const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
 
-    // إنشاء الحاوية الرئيسية الشفافة
     const wrapper = document.createElement('div');
     wrapper.id = 'smart-controls-wrapper';
     wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;display:flex;justify-content:space-between;align-items:flex-end;padding:20px 40px;';
 
-    // زر تبديل الاتجاهات (Swap Button)
     const swapBtn = document.createElement('button');
     swapBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
     swapBtn.style.cssText = 'position:absolute;top:20px;left:50%;transform:translateX(-50%);pointer-events:auto;background:rgba(0,0,0,0.5);color:#fff;border:1px solid #fff;border-radius:50%;width:40px;height:40px;font-size:16px;backdrop-filter:blur(5px);cursor:pointer;';
@@ -278,7 +321,6 @@ function renderSmartControls(controlsData, container) {
     };
     wrapper.appendChild(swapBtn);
 
-    // حاوية اليسار (عادة عصا التحكم)
     const leftZone = document.createElement('div');
     leftZone.style.cssText = 'width:150px;height:150px;position:relative;display:flex;justify-content:center;align-items:center;pointer-events:auto;';
 
@@ -286,7 +328,6 @@ function renderSmartControls(controlsData, container) {
         leftZone.appendChild(createDPad());
     }
 
-    // حاوية اليمين (أزرار الأكشن)
     const rightZone = document.createElement('div');
     rightZone.style.cssText = 'width:200px;display:flex;flex-wrap:wrap-reverse;gap:15px;justify-content:flex-end;align-items:flex-end;pointer-events:auto;';
 
@@ -300,7 +341,6 @@ function renderSmartControls(controlsData, container) {
     container.appendChild(wrapper);
 }
 
-// دالة توليد عصا التحكم (D-Pad)
 function createDPad() {
     const dpad = document.createElement('div');
     dpad.style.cssText = 'width:120px;height:120px;background:rgba(255,255,255,0.1);border-radius:50%;position:relative;border:2px solid rgba(255,255,255,0.3);box-shadow:inset 0 0 20px rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
@@ -324,13 +364,11 @@ function createDPad() {
     return dpad;
 }
 
-// دالة توليد زر الأكشن الدائري مع النص
 function createActionButton(keyName) {
     const btn = document.createElement('button');
     const displayText = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
     btn.innerHTML = `<strong>${displayText}</strong>`;
     
-    // تصميم عصري للزر الدائري
     btn.style.cssText = 'width:55px;height:55px;background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:50%;font-family:monospace;font-size:18px;display:flex;justify-content:center;align-items:center;backdrop-filter:blur(4px);box-shadow:0 4px 6px rgba(0,0,0,0.3);';
 
     const keyCode = getKeyCode(keyName);
@@ -339,7 +377,6 @@ function createActionButton(keyName) {
     return btn;
 }
 
-// ربط أحداث اللمس (Touch) بالأزرار
 function bindTouchEvents(btn, keyCode, keyName) {
     const press = (e) => {
         e.preventDefault();
@@ -348,7 +385,7 @@ function bindTouchEvents(btn, keyCode, keyName) {
     };
     const release = (e) => {
         e.preventDefault();
-        btn.style.background = 'rgba(255,255,255,0.15)'; // إعادة اللون الأصلي
+        btn.style.background = 'rgba(255,255,255,0.15)'; 
         simulateKeyEvent('keyup', keyCode, keyName);
     };
 
@@ -373,7 +410,7 @@ function simulateKeyEvent(type, keyCode, keyName) {
     if (rufflePlayer) rufflePlayer.dispatchEvent(event);
 }
 
-/* ===== GAME PLAYER & CORS PROXY ===== */
+/* ===== GAME PLAYER & VERCEL PROXY ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
     const canvas = document.getElementById('game-canvas');
@@ -398,14 +435,12 @@ function openGame(game) {
         overlay.style.display = 'none';
         canvas.innerHTML = '';
 
-        // تفعيل وضع ملء الشاشة والعرض الأفقي تلقائياً عند النقر (للهواتف)
         if (isMobile) {
             player.requestFullscreen?.().catch(()=>{});
             try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
             
-            // توليد الأزرار الذكية
             if (game.controls) {
-                renderSmartControls(game.controls, player); // نضيفها لـ player لتبقى فوق الـ canvas
+                renderSmartControls(game.controls, player); 
             }
         }
 
@@ -419,11 +454,10 @@ function openGame(game) {
                 p.style.touchAction = 'none';
                 canvas.appendChild(p);
 
-                // 🔥 حل مشكلة CORS السحري عبر البروكسي 🔥
+                // استخدام البروكسي الداخلي لـ Vercel
                 let finalUrl = game.src;
                 if (finalUrl.includes('archive.org') || finalUrl.includes('http')) {
-                    // نستخدم بروكسي عام لتخطي قيود الحماية
-                    finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(game.src);
+                    finalUrl = '/api/proxy?url=' + encodeURIComponent(game.src);
                 }
                 
                 p.load(finalUrl);
@@ -438,7 +472,6 @@ function openGame(game) {
         }
     };
 
-    // التشغيل المباشر عند النقر على نافذة البداية
     overlay.onclick = () => showPixelLoadingBar(launchGame);
     
     closeBtn.onclick = () => {
@@ -447,7 +480,6 @@ function openGame(game) {
         launched = false;
         overlay.style.display = 'flex';
         document.body.style.overflow = '';
-        // إزالة الأزرار الذكية عند الإغلاق
         const smartControls = document.getElementById('smart-controls-wrapper');
         if (smartControls) smartControls.remove();
         
