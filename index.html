@@ -40,6 +40,49 @@
 
     <style class="adBanner" id="adStyleBait">.adBanner-check{display:block;height:1px;}</style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8579682743838923" crossorigin="anonymous"></script>
+
+    <!-- جلب مسبق من Firebase لجوجل (SEO فوري) -->
+    <script>
+    fetch('https://n-core-nostagames-default-rtdb.firebaseio.com/games.json')
+      .then(r => r.json())
+      .then(data => {
+        if (!data) return;
+        const schema = {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "ألعاب Flash الكلاسيكية - NostGames",
+          "itemListElement": Object.values(data)
+            .filter(g => g.downloadUrl && g.downloadUrl.trim() !== '')
+            .map((g, i) => ({
+              "@type": "ListItem",
+              "position": i + 1,
+              "item": {
+                "@type": "VideoGame",
+                "name": g.name || '',
+                "description": g.description || g.description_en || '',
+                "image": g.iconUrl || '',
+                "contentRating": g.ageRating || '+3',
+                "genre": (g.categories || []).join(', '),
+                "gamePlatform": "Web Browser, Android",
+                "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"}
+              }
+            }))
+        };
+        const s = document.createElement('script');
+        s.type = 'application/ld+json';
+        s.textContent = JSON.stringify(schema);
+        document.head.appendChild(s);
+
+        // نص مخفي للدعم الإضافي
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+        div.innerHTML = Object.values(data)
+          .filter(g => g.downloadUrl && g.downloadUrl.trim() !== '')
+          .map(g => `<h2>${g.name}</h2><p>${g.description||''}</p><p>${g.description_en||''}</p>`)
+          .join('');
+        document.body.appendChild(div);
+      });
+    </script>
 </head>
 <body>
 
