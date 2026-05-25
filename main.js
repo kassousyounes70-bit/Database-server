@@ -17,14 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
     initRandomGame();
     initShare();
     initSecretCode();
-    // initDarkMode();  // تم إزالتها
     initBackToTop();
     initLoadingsBar();
 });
 
-/* =============================================
-   ADBLOCK DETECTION
-   ============================================= */
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
     const continueBtn = document.getElementById('adblock-continue-btn');
@@ -105,7 +101,6 @@ function initCounter() {
     }, 25);
 }
 
-/* ===== RENDER GAMES ===== */
 function renderGames(filterText = '') {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
@@ -146,7 +141,6 @@ function renderGames(filterText = '') {
     }
 }
 
-/* ===== SEARCH ===== */
 function initSearch() {
     const searchInput = document.getElementById('search-games');
     if (!searchInput) return;
@@ -159,7 +153,6 @@ function initSearch() {
     });
 }
 
-/* ===== RANDOM GAME ===== */
 function initRandomGame() {
     const btn = document.getElementById('random-game-btn');
     if (!btn) return;
@@ -171,7 +164,6 @@ function initRandomGame() {
     });
 }
 
-/* ===== SHARE ===== */
 function initShare() {
     const btn = document.getElementById('share-game-btn');
     if (!btn) return;
@@ -180,7 +172,7 @@ function initShare() {
             navigator.share({
                 title: 'NostGames',
                 text: 'تعال العب ألعاب Flash الكلاسيكية مجاناً!',
-                url: window.location.href
+                url: 'https://nostagames.vercel.app/'
             }).catch(() => {});
         } else {
             alert('مشاركة غير مدعومة في هذا المتصفح');
@@ -188,7 +180,6 @@ function initShare() {
     });
 }
 
-/* ===== SECRET CODE ===== */
 function initSecretCode() {
     let konamiIndex = 0;
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -240,7 +231,6 @@ function unlockSecretGames() {
     }
 }
 
-/* ===== BACK TO TOP ===== */
 function initBackToTop() {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
@@ -253,7 +243,6 @@ function initBackToTop() {
     });
 }
 
-/* ===== LOADING BAR ===== */
 function showPixelLoadingBar(onComplete) {
     const barContainer = document.createElement('div');
     barContainer.className = 'pixel-loading-overlay';
@@ -281,7 +270,6 @@ function showPixelLoadingBar(onComplete) {
     }, 80);
 }
 
-/* ===== GAME PLAYER ===== */
 function openGame(game) {
     const player = document.getElementById('game-player');
     const canvas = document.getElementById('game-canvas');
@@ -348,7 +336,6 @@ function openGame(game) {
     };
 }
 
-/* ===== CAROUSEL ===== */
 function initCarousel() {
     const grid = document.getElementById('games-grid');
     const prev = document.getElementById('carousel-prev');
@@ -373,7 +360,6 @@ function initCarousel() {
     updateBtns();
 }
 
-/* ===== FLOATING BACKGROUND ICONS ===== */
 function initBgIcons() {
     const layer = document.getElementById('bg-icons-layer');
     if (!layer || gamesDatabase.length === 0) return;
@@ -398,7 +384,6 @@ function initBgIcons() {
     }
 }
 
-/* ===== SCROLL REVEAL ===== */
 function initScrollReveal() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -415,7 +400,6 @@ function initScrollReveal() {
     });
 }
 
-/* ===== DOWNLOAD BUTTONS (مع الرابط المباشر) ===== */
 function initDownloadBtns() {
     const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
 
@@ -432,7 +416,6 @@ function initDownloadBtns() {
     });
 }
 
-/* ===== FULLSCREEN & LANDSCAPE ===== */
 function initFullscreen() {
     const fsBtn = document.getElementById('fullscreen-btn');
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -473,6 +456,5 @@ function releaseLandscape() {
     } catch(e) {}
 }
 
-// تصدير الوظائف العامة
 window.openGame = openGame;
 window.renderGames = renderGames;
