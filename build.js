@@ -81,10 +81,10 @@ async function buildSite() {
         let htmlContent = fs.readFileSync(INDEX_PATH, 'utf8');
 
         // تنظيف وحقن
-        htmlContent = htmlContent.replace('<!-- SSG_INJECT_GAMES_GRID -->', gamesGridHTML);
-        htmlContent = htmlContent.replace('<!-- SSG_INJECT_GAMES_DATABASE_SCRIPT -->', databaseScriptHTML);
-        htmlContent = htmlContent.replace('<!-- SSG_INJECT_SEO_SCHEMA -->', schemaHTML);
-        htmlContent = htmlContent.replace('<!-- SSG_INJECT_SEO_TEXT -->', seoTextHTML);
+        htmlContent = htmlContent.replace('', gamesGridHTML);
+        htmlContent = htmlContent.replace('', databaseScriptHTML);
+        htmlContent = htmlContent.replace('', schemaHTML);
+        htmlContent = htmlContent.replace('', seoTextHTML);
 
         fs.writeFileSync(INDEX_PATH, htmlContent, 'utf8');
         console.log('✅ اكتمل البناء بنجاح!');
@@ -96,4 +96,3 @@ async function buildSite() {
 }
 
 buildSite();
-              
