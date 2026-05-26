@@ -1,0 +1,16 @@
+{
+  "name": "nostagames",
+  "version": "1.0.0",
+  "description": "NostGames - Classic Flash Games for Android",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "keywords": ["flash-games", "retro-games", "android", "arabic"],
+  "author": "NostGames",
+  "license": "MIT"
+}
