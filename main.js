@@ -1,5 +1,5 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v9.2 (Editable & Flip Controls)
+   NOSTAGAMES - MAIN ENGINE v9.3 (Editable & Flip Controls, Vector Icons)
    ============================================= */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -453,7 +453,7 @@ function triggerRuffleKeyEvent(type, keyName) {
 }
 
 /* =============================================
-   SMART CONTROLS (قابلة للتعديل والقلب)
+   SMART CONTROLS (قابلة للتعديل والقلب - مع toolbar بجانب زر الإغلاق)
    ============================================= */
 let editModeActive = false;
 let currentGameId = null;
@@ -472,48 +472,95 @@ function renderSmartControls(gameId, controlsData, container) {
     const existingWrapper = document.getElementById('smart-controls-wrapper');
     if (existingWrapper) existingWrapper.remove();
 
+    // ننشئ حاوية خارجية للتحكمات + شريط الأدوات
     const wrapper = document.createElement('div');
     wrapper.id = 'smart-controls-wrapper';
-    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:160px;pointer-events:none;z-index:10000;direction:ltr;';
+    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:180px;pointer-events:none;z-index:10000;direction:ltr;';
 
-    // شريط الأدوات العلوي
+    // ========= شريط الأدوات العلوي (بجانب زر الإغلاق) =========
+    // نبحث عن زر الإغلاق في نافذة اللعبة المفتوحة (في #game-player)
+    // سنقوم بإضافة شريط الأدوات داخل نفس الحاوية التي تحتوي زر الإغلاق
+    // لكن لضمان عدم التأثير على تصميم اللعبة، سنضيف toolbar أعلى الشاشة بجانب زر الإغلاق.
+    // طريقة آمنة: نضيف div جديد ونضعه بجانب زر الإغلاق باستخدام CSS absolute.
     const toolbar = document.createElement('div');
     toolbar.id = 'controls-toolbar';
-    toolbar.style.cssText = 'position:absolute;top:-50px;left:0;right:0;display:flex;justify-content:center;gap:15px;background:rgba(0,0,0,0.7);padding:8px;border-radius:20px;pointer-events:auto;z-index:10001;';
+    toolbar.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(0,0,0,0.6);padding:6px 12px;border-radius:40px;backdrop-filter:blur(8px);pointer-events:auto;z-index:10001;';
     
+    // زر القلم (تعديل)
     const editBtn = document.createElement('button');
-    editBtn.innerHTML = '✏️';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
     editBtn.title = 'تعديل الأزرار';
+    editBtn.style.cssText = 'background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
+    editBtn.onmouseover = () => editBtn.style.backgroundColor = 'rgba(255,255,255,0.2)';
+    editBtn.onmouseout = () => editBtn.style.backgroundColor = 'transparent';
+    
+    // زر القلب (Flip)
     const flipBtn = document.createElement('button');
-    flipBtn.innerHTML = '🔄';
+    flipBtn.innerHTML = '<i class="fa-solid fa-arrows-spin"></i>';
     flipBtn.title = 'قلب الاتجاهات (يسار/يمين)';
+    flipBtn.style.cssText = editBtn.style.cssText;
+    flipBtn.onmouseover = editBtn.onmouseover;
+    flipBtn.onmouseout = editBtn.onmouseout;
+    
+    // أزرار وضع التعديل
     const cancelBtn = document.createElement('button');
-    cancelBtn.innerHTML = '❌ إلغاء';
+    cancelBtn.innerHTML = '<i class="fa-solid fa-ban"></i>';
+    cancelBtn.title = 'إلغاء التعديلات';
+    cancelBtn.style.cssText = editBtn.style.cssText;
     cancelBtn.style.display = 'none';
     const saveBtn = document.createElement('button');
-    saveBtn.innerHTML = '💾 حفظ';
+    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
+    saveBtn.title = 'حفظ التخطيط';
+    saveBtn.style.cssText = editBtn.style.cssText;
     saveBtn.style.display = 'none';
     const sizePlus = document.createElement('button');
-    sizePlus.innerHTML = '➕';
+    sizePlus.innerHTML = '<i class="fa-solid fa-plus"></i>';
+    sizePlus.title = 'تكبير الزر المحدد';
+    sizePlus.style.cssText = editBtn.style.cssText;
     sizePlus.style.display = 'none';
     const sizeMinus = document.createElement('button');
-    sizeMinus.innerHTML = '➖';
+    sizeMinus.innerHTML = '<i class="fa-solid fa-minus"></i>';
+    sizeMinus.title = 'تصغير الزر المحدد';
+    sizeMinus.style.cssText = editBtn.style.cssText;
     sizeMinus.style.display = 'none';
     
     toolbar.append(editBtn, flipBtn, cancelBtn, saveBtn, sizePlus, sizeMinus);
     wrapper.appendChild(toolbar);
-
-    // مناطق العصا والأزرار (يمكن تبديلها لاحقاً)
+    
+    // الآن نضيف زر الإغلاق الأصلي إلى نفس المستوى (بجانب toolbar) ولكن في أقصى اليمين
+    // نبحث عن زر الإغلاق الموجود في #game-player (الزر الأحمر)
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '10px';
+        closeBtn.style.right = '10px';
+        closeBtn.style.zIndex = '10002';
+        closeBtn.style.backgroundColor = '#e74c3c';
+        closeBtn.style.border = 'none';
+        closeBtn.style.borderRadius = '50%';
+        closeBtn.style.width = '40px';
+        closeBtn.style.height = '40px';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.display = 'flex';
+        closeBtn.style.alignItems = 'center';
+        closeBtn.style.justifyContent = 'center';
+        closeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        // نتأكد من أنه يظهر فوق كل شيء
+        if (closeBtn.parentNode) closeBtn.parentNode.style.position = 'relative';
+    }
+    
+    // مناطق العصا والأزرار
     const leftArea = document.createElement('div');
     leftArea.className = 'controls-left';
     leftArea.style.cssText = 'position:absolute;bottom:15px;left:15px;pointer-events:auto;';
     const rightArea = document.createElement('div');
     rightArea.className = 'controls-right';
     rightArea.style.cssText = 'position:absolute;bottom:15px;right:15px;display:flex;gap:15px;pointer-events:auto;';
-
+    
     let joystickElement = null;
     let actionButtons = [];
-
+    
     if (hasJoystick) {
         joystickElement = createAnalogStick(useWasd);
         joystickElement.classList.add('ctrl-joystick');
@@ -524,7 +571,7 @@ function renderSmartControls(gameId, controlsData, container) {
         joystickElement.style.border = '2px solid rgba(255,255,255,0.6)';
         leftArea.appendChild(joystickElement);
     }
-
+    
     actionKeys.forEach(key => {
         const btn = createActionButton(key);
         btn.classList.add('ctrl-action-btn');
@@ -542,17 +589,16 @@ function renderSmartControls(gameId, controlsData, container) {
         rightArea.appendChild(btn);
         actionButtons.push(btn);
     });
-
+    
     wrapper.appendChild(leftArea);
     wrapper.appendChild(rightArea);
     container.appendChild(wrapper);
-
-    // تحميل التخطيط المحفوظ (إذا وجد)
+    
+    // تحميل التخطيط المحفوظ والقلب
     const savedLayout = localStorage.getItem(`nosta_layout_${gameId}`);
     const savedFlip = localStorage.getItem(`nosta_flip_${gameId}`);
     let flipped = (savedFlip === 'true');
     if (flipped) {
-        // تبديل المناطق
         leftArea.style.left = 'auto';
         leftArea.style.right = '15px';
         rightArea.style.right = 'auto';
@@ -563,7 +609,7 @@ function renderSmartControls(gameId, controlsData, container) {
         rightArea.style.right = '15px';
         rightArea.style.left = 'auto';
     }
-
+    
     if (savedLayout) {
         try {
             const layout = JSON.parse(savedLayout);
@@ -584,18 +630,18 @@ function renderSmartControls(gameId, controlsData, container) {
             });
         } catch(e) {}
     }
-
+    
     // وظائف وضع التعديل
     let editActive = false;
     let selectedElement = null;
-
+    
     function enableEditMode() {
         editActive = true;
         editBtn.style.display = 'none';
-        cancelBtn.style.display = 'inline-block';
-        saveBtn.style.display = 'inline-block';
-        sizePlus.style.display = 'inline-block';
-        sizeMinus.style.display = 'inline-block';
+        cancelBtn.style.display = 'flex';
+        saveBtn.style.display = 'flex';
+        sizePlus.style.display = 'flex';
+        sizeMinus.style.display = 'flex';
         wrapper.style.backgroundColor = 'rgba(0,0,0,0.3)';
         const allControls = [joystickElement, ...actionButtons].filter(el => el);
         allControls.forEach(el => {
@@ -604,10 +650,10 @@ function renderSmartControls(gameId, controlsData, container) {
             makeDraggableAndResizable(el, sizePlus, sizeMinus);
         });
     }
-
+    
     function disableEditMode(cancel = false) {
         editActive = false;
-        editBtn.style.display = 'inline-block';
+        editBtn.style.display = 'flex';
         cancelBtn.style.display = 'none';
         saveBtn.style.display = 'none';
         sizePlus.style.display = 'none';
@@ -620,7 +666,6 @@ function renderSmartControls(gameId, controlsData, container) {
             removeDraggable(el);
         });
         if (cancel && originalLayout) {
-            // استعادة التخطيط الأصلي من localStorage أو default
             const defLayout = localStorage.getItem(`nosta_layout_${gameId}`);
             if (defLayout) {
                 const layout = JSON.parse(defLayout);
@@ -643,7 +688,7 @@ function renderSmartControls(gameId, controlsData, container) {
         }
         selectedElement = null;
     }
-
+    
     function saveLayout() {
         const layout = {};
         if (joystickElement) {
@@ -666,7 +711,7 @@ function renderSmartControls(gameId, controlsData, container) {
         localStorage.setItem(`nosta_layout_${gameId}`, JSON.stringify(layout));
         disableEditMode(false);
     }
-
+    
     function flipControls() {
         flipped = !flipped;
         localStorage.setItem(`nosta_flip_${gameId}`, flipped);
@@ -682,7 +727,7 @@ function renderSmartControls(gameId, controlsData, container) {
             rightArea.style.left = 'auto';
         }
     }
-
+    
     editBtn.onclick = () => {
         originalLayout = localStorage.getItem(`nosta_layout_${gameId}`);
         enableEditMode();
@@ -690,7 +735,7 @@ function renderSmartControls(gameId, controlsData, container) {
     cancelBtn.onclick = () => disableEditMode(true);
     saveBtn.onclick = saveLayout;
     flipBtn.onclick = flipControls;
-
+    
     function makeDraggableAndResizable(el, plusBtn, minusBtn) {
         let isDragging = false;
         let startX, startY, startLeft, startTop;
@@ -731,7 +776,6 @@ function renderSmartControls(gameId, controlsData, container) {
             window.removeEventListener('touchend', onDragEnd);
             window.removeEventListener('mouseup', onDragEnd);
         }
-        // resize via buttons
         const resize = (delta) => {
             if (!selectedElement || !editActive) return;
             let w = parseInt(selectedElement.style.width);
@@ -768,7 +812,7 @@ function createAnalogStick(useWasd) {
     knob.style.left = '30%';
     knob.style.transition = 'transform 0.05s linear';
     base.appendChild(knob);
-
+    
     let activeKeys = [];
     const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
     const updateKeys = (newKeys) => {
@@ -776,7 +820,7 @@ function createAnalogStick(useWasd) {
         newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
         activeKeys = newKeys;
     };
-
+    
     function handleMove(e) {
         if (editModeActive) return;
         e.preventDefault();
@@ -841,34 +885,34 @@ function openGame(game) {
     const titleEl = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
     if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
-
+    
     titleEl.textContent = `▶ ${game.title}`;
     canvas.innerHTML = '';
     overlay.style.display = 'flex';
     player.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-
-    // تكبير شاشة اللعب مع ترك مسافة للإعلانات الجانبية
-    player.style.width = '100vw';
-    player.style.height = 'calc(100vh - 60px)';
+    
+    // تكبير الشاشة مع ترك مساحة جانبية للإعلانات (يمكن تعديل القيم في CSS)
     player.style.position = 'fixed';
     player.style.top = '0';
     player.style.left = '0';
+    player.style.width = '100vw';
+    player.style.height = '100vh';
     player.style.zIndex = '9999';
     player.style.backgroundColor = '#000';
     const gameContainer = document.querySelector('.game-container');
     if (gameContainer) {
-        gameContainer.style.width = '100%';
-        gameContainer.style.height = '100%';
-        gameContainer.style.margin = '0';
+        gameContainer.style.width = 'calc(100% - 20px)';  // مساحة جانبية 10px لكل جهة
+        gameContainer.style.height = 'calc(100% - 20px)';
+        gameContainer.style.margin = '10px auto';
         gameContainer.style.padding = '0';
     }
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-
+    
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     let launched = false;
-
+    
     const launchGame = () => {
         if (launched) return;
         launched = true;
@@ -904,9 +948,9 @@ function openGame(game) {
             canvas.appendChild(iframe);
         }
     };
-
+    
     overlay.onclick = () => showPixelLoadingBar(launchGame);
-
+    
     closeBtn.onclick = () => {
         player.classList.add('hidden');
         canvas.innerHTML = '';
@@ -916,10 +960,15 @@ function openGame(game) {
         document.getElementById('smart-controls-wrapper')?.remove();
         try { screen.orientation?.unlock(); } catch(e) {}
         if (document.fullscreenElement) document.exitFullscreen?.();
-        // إعادة ضبط حجم اللاعب
+        // إعادة تعيين حجم اللاعب
         player.style.position = '';
         player.style.width = '';
         player.style.height = '';
+        if (gameContainer) {
+            gameContainer.style.width = '';
+            gameContainer.style.height = '';
+            gameContainer.style.margin = '';
+        }
     };
 }
 
@@ -1003,7 +1052,7 @@ function injectSEOSchema() {
     if (window.__serverSnapshot && document.getElementById('server-games-schema')) return;
     document.getElementById('games-schema')?.remove();
     document.getElementById('seo-text-block')?.remove();
-
+    
     const schemaData = {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -1030,7 +1079,7 @@ function injectSEOSchema() {
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify(schemaData);
     document.head.appendChild(script);
-
+    
     const seoBlock = document.createElement('div');
     seoBlock.id = 'seo-text-block';
     seoBlock.setAttribute('aria-hidden', 'true');
