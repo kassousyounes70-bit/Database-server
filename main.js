@@ -1,5 +1,5 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v9.0 (Hybrid Hydration + Smart Diff)
+   NOSTAGAMES - MAIN ENGINE v9.1 (Static Controls + Smart Layout)
    المعمارية الهجينة: Server Snapshot + Firebase Live Sync
    ============================================= */
 
@@ -19,7 +19,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// window.gamesDatabase قد تكون مملوءة بالفعل من build.js (Server Snapshot)
 window.gamesDatabase = window.gamesDatabase || [];
 window.secretGames = { games: [] };
 
@@ -36,11 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initSecretCode();
     initBackToTop();
 
-    // ==============================
-    // الترطيب الأولي (Initial Hydration)
-    // ==============================
     if (window.__serverSnapshot && window.gamesDatabase.length > 0) {
-        // البيانات جاهزة من الـ Server Snapshot — عرضها فوراً
         console.log(`[NostGames] ⚡ Hydrating from server snapshot: ${window.gamesDatabase.length} games`);
         renderGames();
         injectSEOSchema();
@@ -48,11 +43,8 @@ document.addEventListener("DOMContentLoaded", () => {
         initCarousel();
         initSearch();
         initRandomGame();
-
-        // مزامنة صامتة في الخلفية للألعاب الجديدة
         silentSyncWithFirebase();
     } else {
-        // لا يوجد snapshot (أول نشر أو بيئة تطوير) — الجلب المباشر
         console.log('[NostGames] No server snapshot found, fetching from Firebase directly...');
         fetchGamesFromFirebase();
     }
@@ -65,23 +57,18 @@ async function silentSyncWithFirebase() {
     try {
         const gamesRef = ref(db, 'games');
         const snapshot = await get(gamesRef);
-
         if (!snapshot.exists()) return;
-
         const data = snapshot.val();
 
-        // بناء Set من الـ IDs الموجودة مسبقاً في الـ snapshot
         const existingIds = new Set(window.gamesDatabase.map(g => g.id));
         let newGamesCount = 0;
 
         for (const key in data) {
+            if (key === 'ban_01') continue;  // تجاهل اللعبة الممنوعة
             const game = data[key];
             if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
-
-            // تجاهل الألعاب الموجودة بالفعل
             if (existingIds.has(key)) continue;
 
-            // لعبة جديدة لم تكن في الـ snapshot!
             const newGame = {
                 id: key,
                 title: game.name || "بدون اسم",
@@ -94,48 +81,33 @@ async function silentSyncWithFirebase() {
                 description_en: game.description_en || "",
                 categories: game.categories || []
             };
-
             window.gamesDatabase.push(newGame);
             existingIds.add(key);
             newGamesCount++;
-
-            // حقن بطاقة اللعبة الجديدة ديناميكياً في الـ Grid
             injectNewGameCard(newGame);
         }
 
         if (newGamesCount > 0) {
             console.log(`[NostGames] 🆕 Silent sync: added ${newGamesCount} new game(s) from Firebase`);
-            // تحديث محرك البحث بالألعاب الجديدة
             initSearch();
             initRandomGame();
         } else {
             console.log('[NostGames] ✅ Silent sync complete: no new games');
         }
-
     } catch (error) {
-        // فشل الـ sync الصامت لا يؤثر على الموقع
         console.warn('[NostGames] Silent sync failed (non-critical):', error.message);
     }
 }
 
-/* =============================================
-   الحقن الديناميكي للعبة الجديدة
-   ============================================= */
 function injectNewGameCard(game) {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
-
-    // التأكد من عدم وجود البطاقة بالفعل (guard)
     if (grid.querySelector(`[data-id="${game.id}"]`)) return;
-
     const card = buildGameCard(game);
     grid.appendChild(card);
     setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, 100);
 }
 
-/* =============================================
-   الجلب المباشر من Firebase (Fallback بدون Snapshot)
-   ============================================= */
 async function fetchGamesFromFirebase() {
     const grid = document.getElementById('games-grid');
     if (grid) grid.innerHTML = '<div class="pixel-loading-text" style="text-align:center;width:100%;padding:20px;color:#f1c40f;">جاري تحميل الألعاب...</div>';
@@ -143,15 +115,13 @@ async function fetchGamesFromFirebase() {
     try {
         const gamesRef = ref(db, 'games');
         const snapshot = await get(gamesRef);
-
         if (snapshot.exists()) {
             const data = snapshot.val();
             window.gamesDatabase = [];
-
             for (const key in data) {
+                if (key === 'ban_01') continue;
                 const game = data[key];
                 if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
-
                 window.gamesDatabase.push({
                     id: key,
                     title: game.name || "بدون اسم",
@@ -165,7 +135,6 @@ async function fetchGamesFromFirebase() {
                     categories: game.categories || []
                 });
             }
-
             renderGames();
             injectSEOSchema();
             initBgIcons();
@@ -181,9 +150,6 @@ async function fetchGamesFromFirebase() {
     }
 }
 
-/* =============================================
-   بناء بطاقة لعبة واحدة (مشترك بين render و inject)
-   ============================================= */
 function buildGameCard(game, idx = 0) {
     const card = document.createElement('div');
     card.className = 'game-card';
@@ -208,13 +174,9 @@ function buildGameCard(game, idx = 0) {
     card.appendChild(titleSpan);
     card.addEventListener('click', () => showGamePanel(game));
     setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
-
     return card;
 }
 
-/* =============================================
-   عرض الألعاب في الـ Grid
-   ============================================= */
 function renderGames(filterText = '') {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
@@ -228,7 +190,6 @@ function renderGames(filterText = '') {
             (game.description || '').toLowerCase().includes(lower)
         );
     }
-
     filtered.forEach((game, idx) => {
         grid.appendChild(buildGameCard(game, idx));
     });
@@ -277,20 +238,17 @@ function showGamePanel(game) {
             </button>
         </div>
     `;
-
     document.body.appendChild(panel);
 
     function closePanel() {
         panel.classList.add('panel-closing');
         setTimeout(() => panel.remove(), 250);
     }
-
     const onKey = (e) => { if (e.key === 'Escape') { closePanel(); document.removeEventListener('keydown', onKey); } };
     document.addEventListener('keydown', onKey);
     panel.addEventListener('click', e => { if (e.target === panel) { closePanel(); document.removeEventListener('keydown', onKey); } });
     document.getElementById('panel-close-btn').onclick = closePanel;
     document.getElementById('panel-play-btn').onclick = () => { closePanel(); setTimeout(() => openGame(game), 260); };
-
     requestAnimationFrame(() => panel.classList.add('panel-visible'));
 }
 
@@ -300,7 +258,6 @@ function showGamePanel(game) {
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
     const continueBtn = document.getElementById('adblock-continue-btn');
-
     function check1() {
         const bait = document.getElementById('ab-bait1');
         if (!bait) return true;
@@ -311,8 +268,6 @@ function initAdBlockDetection() {
         if (!bait) return true;
         return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
     }
-
-    // جدار الإعلانات: يعمل فقط عند التفاعل الفعلي (لا يمنع عناكب البحث)
     const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
     setTimeout(() => {
         if (isBot) return;
@@ -322,7 +277,6 @@ function initAdBlockDetection() {
             document.body.style.overflow = 'hidden';
         }
     }, 800);
-
     if (continueBtn) {
         continueBtn.addEventListener('click', () => {
             if (check1() || check2()) {
@@ -362,7 +316,6 @@ function initCounter() {
 function initSearch() {
     const searchInput = document.getElementById('search-games');
     if (!searchInput) return;
-    // إزالة المستمع القديم قبل إضافة جديد
     const newInput = searchInput.cloneNode(true);
     searchInput.parentNode.replaceChild(newInput, searchInput);
     let timeout;
@@ -375,7 +328,6 @@ function initSearch() {
 function initRandomGame() {
     const btn = document.getElementById('random-game-btn');
     if (!btn) return;
-    // إزالة المستمع القديم
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => {
@@ -503,195 +455,128 @@ function triggerRuffleKeyEvent(type, keyName) {
 }
 
 /* =============================================
-   SMART CONTROLS (Analog Stick + Edit Mode)
+   SMART CONTROLS (ثابت: عصا يسار، أزرار يمين)
    ============================================= */
-let currentEditTarget = null;
-let controlsEditMode = false;
-
 function renderSmartControls(gameId, controlsData, container) {
-    if (!controlsData || (!controlsData.p1 && !controlsData.wasd)) return;
+    if (!controlsData) return;
     const p1 = controlsData.p1 || {};
     const useWasd = controlsData.wasd === true;
-    let hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
+    const hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
     const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
 
     const wrapper = document.createElement('div');
     wrapper.id = 'smart-controls-wrapper';
-    wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;direction:ltr;';
+    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:160px;pointer-events:none;z-index:10000;direction:ltr;';
 
-    const toolbar = document.createElement('div');
-    toolbar.id = 'controls-toolbar';
-    toolbar.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:15px;pointer-events:auto;z-index:10000;background:rgba(0,0,0,0.6);padding:5px 15px;border-radius:20px;';
+    const leftArea = document.createElement('div');
+    leftArea.style.cssText = 'position:absolute;bottom:15px;left:15px;pointer-events:auto;';
+    const rightArea = document.createElement('div');
+    rightArea.style.cssText = 'position:absolute;bottom:15px;right:15px;display:flex;gap:15px;pointer-events:auto;';
 
-    const mkBtn = (html) => {
-        const b = document.createElement('button');
-        b.innerHTML = html;
-        b.className = 'ctrl-toolbar-btn';
-        b.style.cssText = 'background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;padding:5px;';
-        return b;
-    };
-    const swapBtn = mkBtn('<i class="fa-solid fa-arrows-left-right"></i>');
-    const editBtn = mkBtn('<i class="fa-solid fa-pen"></i>');
-    const saveBtn = mkBtn('<i class="fa-solid fa-floppy-disk"></i> حفظ');
-    const sizePlusBtn = mkBtn('<i class="fa-solid fa-magnifying-glass-plus"></i>');
-    const sizeMinusBtn = mkBtn('<i class="fa-solid fa-magnifying-glass-minus"></i>');
-    saveBtn.style.display = sizePlusBtn.style.display = sizeMinusBtn.style.display = 'none';
-    [swapBtn,editBtn,sizeMinusBtn,sizePlusBtn,saveBtn].forEach(b => toolbar.appendChild(b));
-    wrapper.appendChild(toolbar);
-
-    const elementsContainer = document.createElement('div');
-    elementsContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
-    wrapper.appendChild(elementsContainer);
-
-    let savedLayout = JSON.parse(localStorage.getItem('nosta_ctrls_' + gameId));
-    let layoutMap = {};
-    if (!savedLayout) {
-        if (hasJoystick) layoutMap['JOYSTICK'] = { x:10, y:60, size:120 };
-        const centerX=80, centerY=70, radius=12;
-        if (actionKeys.length===1) layoutMap[actionKeys[0]] = {x:centerX,y:centerY,size:60};
-        else if (actionKeys.length===2) {
-            layoutMap[actionKeys[0]] = {x:centerX-8,y:centerY+5,size:60};
-            layoutMap[actionKeys[1]] = {x:centerX+8,y:centerY-5,size:60};
-        } else {
-            const angleStep=(2*Math.PI)/actionKeys.length;
-            actionKeys.forEach((key,i) => {
-                const angle=i*angleStep;
-                layoutMap[key] = {x:centerX+radius*Math.cos(angle),y:centerY+radius*Math.sin(angle),size:55};
-            });
-        }
-    } else { layoutMap = savedLayout; }
-
-    let controlElements = [];
+    // عصا التحكم (يسار)
     if (hasJoystick) {
-        const jd = layoutMap['JOYSTICK']||{x:10,y:60,size:120};
         const joy = createAnalogStick(useWasd);
-        applyElementStyle(joy, jd.x, jd.y, jd.size);
-        joy.dataset.id = 'JOYSTICK';
-        elementsContainer.appendChild(joy);
-        controlElements.push(joy);
+        joy.style.width = '120px';
+        joy.style.height = '120px';
+        joy.style.borderRadius = '50%';
+        joy.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        joy.style.border = '2px solid rgba(255,255,255,0.6)';
+        leftArea.appendChild(joy);
     }
+
+    // أزرار الحركة (يمين)
     actionKeys.forEach(key => {
-        const bd = layoutMap[key]||{x:50,y:50,size:60};
         const btn = createActionButton(key);
-        applyElementStyle(btn, bd.x, bd.y, bd.size);
-        btn.dataset.id = key;
-        elementsContainer.appendChild(btn);
-        controlElements.push(btn);
+        btn.style.width = '70px';
+        btn.style.height = '70px';
+        btn.style.borderRadius = '50%';
+        btn.style.backgroundColor = 'rgba(0,0,0,0.6)';
+        btn.style.border = '2px solid white';
+        btn.style.color = 'white';
+        btn.style.fontSize = '24px';
+        btn.style.fontWeight = 'bold';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.touchAction = 'none';
+        rightArea.appendChild(btn);
     });
+
+    wrapper.appendChild(leftArea);
+    wrapper.appendChild(rightArea);
     container.appendChild(wrapper);
-
-    swapBtn.onclick = () => {
-        controlElements.forEach(el => {
-            const cx = parseFloat(el.style.left);
-            el.style.left = (100 - cx - (parseFloat(el.style.width)/window.innerWidth*100)) + '%';
-        });
-    };
-    editBtn.onclick = () => {
-        controlsEditMode=true; editBtn.style.display=swapBtn.style.display='none';
-        saveBtn.style.display=sizePlusBtn.style.display=sizeMinusBtn.style.display='block';
-        wrapper.style.backgroundColor='rgba(0,0,0,0.4)';
-        controlElements.forEach(el => { el.classList.add('edit-mode'); el.style.border='2px dashed #0f0'; });
-    };
-    saveBtn.onclick = () => {
-        controlsEditMode=false; currentEditTarget=null;
-        editBtn.style.display=swapBtn.style.display='block';
-        saveBtn.style.display=sizePlusBtn.style.display=sizeMinusBtn.style.display='none';
-        wrapper.style.backgroundColor='transparent';
-        const newLayout={};
-        controlElements.forEach(el => {
-            el.classList.remove('edit-mode');
-            el.style.border=el.dataset.id==='JOYSTICK'?'2px solid rgba(255,255,255,0.3)':'2px solid rgba(255,255,255,0.5)';
-            newLayout[el.dataset.id]={x:parseFloat(el.style.left),y:parseFloat(el.style.top),size:parseFloat(el.style.width)};
-        });
-        localStorage.setItem('nosta_ctrls_'+gameId, JSON.stringify(newLayout));
-    };
-    sizePlusBtn.onclick = () => { if(currentEditTarget){let s=parseFloat(currentEditTarget.style.width)+5;currentEditTarget.style.width=currentEditTarget.style.height=s+'px';} };
-    sizeMinusBtn.onclick = () => { if(currentEditTarget){let s=Math.max(30,parseFloat(currentEditTarget.style.width)-5);currentEditTarget.style.width=currentEditTarget.style.height=s+'px';} };
-
-    controlElements.forEach(el => {
-        let isDragging=false,startX,startY,initialLeft,initialTop;
-        el.addEventListener('touchstart',(e)=>{
-            if(!controlsEditMode)return; e.preventDefault();
-            currentEditTarget=el;
-            controlElements.forEach(c=>c.style.borderColor=c.dataset.id==='JOYSTICK'?'rgba(255,255,255,0.3)':'rgba(255,255,255,0.5)');
-            el.style.borderColor='#ff0'; isDragging=true;
-            startX=e.touches[0].clientX; startY=e.touches[0].clientY;
-            initialLeft=parseFloat(el.style.left)/100*window.innerWidth;
-            initialTop=parseFloat(el.style.top)/100*window.innerHeight;
-        },{passive:false});
-        el.addEventListener('touchmove',(e)=>{
-            if(!isDragging||!controlsEditMode)return; e.preventDefault();
-            const dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
-            el.style.left=Math.max(0,Math.min((initialLeft+dx)/window.innerWidth*100,90))+'%';
-            el.style.top=Math.max(0,Math.min((initialTop+dy)/window.innerHeight*100,90))+'%';
-        },{passive:false});
-        el.addEventListener('touchend',()=>{isDragging=false;});
-    });
 }
 
-function applyElementStyle(el,x,y,size){
-    el.style.position='absolute';el.style.left=x+'%';el.style.top=y+'%';
-    el.style.width=size+'px';el.style.height=size+'px';el.style.pointerEvents='auto';
-}
-
-function createAnalogStick(useWasd){
-    const base=document.createElement('div');
-    base.style.cssText='background:rgba(255,255,255,0.1);border-radius:50%;position:relative;border:2px solid rgba(255,255,255,0.3);box-shadow:inset 0 0 20px rgba(0,0,0,0.5);touch-action:none;';
-    const knob=document.createElement('div');
-    knob.style.cssText='width:40%;height:40%;background:rgba(255,255,255,0.5);border-radius:50%;position:absolute;top:30%;left:30%;transition:transform 0.1s ease-out;';
+function createAnalogStick(useWasd) {
+    const base = document.createElement('div');
+    base.style.position = 'relative';
+    base.style.touchAction = 'none';
+    const knob = document.createElement('div');
+    knob.style.position = 'absolute';
+    knob.style.width = '40%';
+    knob.style.height = '40%';
+    knob.style.backgroundColor = 'rgba(255,255,255,0.8)';
+    knob.style.borderRadius = '50%';
+    knob.style.top = '30%';
+    knob.style.left = '30%';
+    knob.style.transition = 'transform 0.05s linear';
     base.appendChild(knob);
-    let activeKeys=[];
-    const mapping=useWasd?{U:'W',D:'S',L:'A',R:'D'}:{U:'UP',D:'DOWN',L:'LEFT',R:'RIGHT'};
-    const updateKeys=(newKeys)=>{
-        activeKeys.forEach(k=>{if(!newKeys.includes(k))triggerRuffleKeyEvent('keyup',k);});
-        newKeys.forEach(k=>{if(!activeKeys.includes(k))triggerRuffleKeyEvent('keydown',k);});
-        activeKeys=newKeys;
+
+    let activeKeys = [];
+    const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
+    const updateKeys = (newKeys) => {
+        activeKeys.forEach(k => { if (!newKeys.includes(k)) triggerRuffleKeyEvent('keyup', k); });
+        newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
+        activeKeys = newKeys;
     };
-    function handleJoystick(e){
-        if(controlsEditMode)return; e.preventDefault();
-        const rect=base.getBoundingClientRect();
-        const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2, mr=rect.width/2;
-        let dx=e.touches[0].clientX-cx, dy=e.touches[0].clientY-cy;
-        const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist>mr){dx=(dx/dist)*mr;dy=(dy/dist)*mr;}
-        knob.style.transform=`translate(${dx}px,${dy}px)`;
-        knob.style.transition='none';
-        const angle=Math.atan2(dy,dx)*(180/Math.PI);
-        let dirs=[];
-        if(dist>mr*0.2){
-            if(angle>-112.5&&angle<-67.5) dirs.push(mapping.U);
-            else if(angle>67.5&&angle<112.5) dirs.push(mapping.D);
-            else if(angle>-22.5&&angle<22.5) dirs.push(mapping.R);
-            else if(angle>157.5||angle<-157.5) dirs.push(mapping.L);
-            else if(angle>=-67.5&&angle<=-22.5) dirs.push(mapping.U,mapping.R);
-            else if(angle>=-157.5&&angle<=-112.5) dirs.push(mapping.U,mapping.L);
-            else if(angle>=22.5&&angle<=67.5) dirs.push(mapping.D,mapping.R);
-            else if(angle>=112.5&&angle<=157.5) dirs.push(mapping.D,mapping.L);
+
+    function handleMove(e) {
+        e.preventDefault();
+        const rect = base.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const mr = rect.width / 2;
+        let dx = (e.touches ? e.touches[0].clientX : e.clientX) - cx;
+        let dy = (e.touches ? e.touches[0].clientY : e.clientY) - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > mr) { dx = dx * mr / dist; dy = dy * mr / dist; }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        let dirs = [];
+        if (dist > mr * 0.2) {
+            if (angle > -112.5 && angle < -67.5) dirs.push(mapping.U);
+            else if (angle > 67.5 && angle < 112.5) dirs.push(mapping.D);
+            else if (angle > -22.5 && angle < 22.5) dirs.push(mapping.R);
+            else if (angle > 157.5 || angle < -157.5) dirs.push(mapping.L);
+            else if (angle >= -67.5 && angle <= -22.5) dirs.push(mapping.U, mapping.R);
+            else if (angle >= -157.5 && angle <= -112.5) dirs.push(mapping.U, mapping.L);
+            else if (angle >= 22.5 && angle <= 67.5) dirs.push(mapping.D, mapping.R);
+            else if (angle >= 112.5 && angle <= 157.5) dirs.push(mapping.D, mapping.L);
         }
         updateKeys(dirs);
     }
-    const resetJoystick=(e)=>{
-        if(controlsEditMode)return; e.preventDefault();
-        knob.style.transform='translate(0px,0px)'; knob.style.transition='transform 0.2s ease-out';
+    function reset() {
+        knob.style.transform = 'translate(0px, 0px)';
         updateKeys([]);
-    };
-    base.addEventListener('touchstart',handleJoystick,{passive:false});
-    base.addEventListener('touchmove',handleJoystick,{passive:false});
-    base.addEventListener('touchend',resetJoystick,{passive:false});
-    base.addEventListener('touchcancel',resetJoystick,{passive:false});
+    }
+    base.addEventListener('touchstart', handleMove, { passive: false });
+    base.addEventListener('touchmove', handleMove, { passive: false });
+    base.addEventListener('touchend', reset);
+    base.addEventListener('touchcancel', reset);
     return base;
 }
 
-function createActionButton(keyName){
-    const btn=document.createElement('button');
-    const displayText=keyName.toUpperCase()==='SPACE'?'SP':keyName.toUpperCase();
-    btn.innerHTML=`<strong>${displayText}</strong>`;
-    btn.style.cssText='background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.5);border-radius:50%;font-family:monospace;font-size:18px;display:flex;justify-content:center;align-items:center;touch-action:none;';
-    const press=(e)=>{if(controlsEditMode)return;e.preventDefault();btn.style.background='rgba(255,255,255,0.5)';triggerRuffleKeyEvent('keydown',keyName);};
-    const release=(e)=>{if(controlsEditMode)return;e.preventDefault();btn.style.background='rgba(255,255,255,0.15)';triggerRuffleKeyEvent('keyup',keyName);};
-    btn.addEventListener('touchstart',press,{passive:false});
-    btn.addEventListener('touchend',release,{passive:false});
-    btn.addEventListener('touchcancel',release,{passive:false});
+function createActionButton(keyName) {
+    const btn = document.createElement('button');
+    const display = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
+    btn.textContent = display;
+    const press = (e) => { e.preventDefault(); triggerRuffleKeyEvent('keydown', keyName); };
+    const release = (e) => { e.preventDefault(); triggerRuffleKeyEvent('keyup', keyName); };
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('touchend', release);
+    btn.addEventListener('touchcancel', release);
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
     return btn;
 }
 
@@ -704,7 +589,7 @@ function openGame(game) {
     const overlay = document.getElementById('game-overlay');
     const titleEl = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
-    if (!player||!canvas||!overlay||!titleEl||!closeBtn) return;
+    if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
 
     titleEl.textContent = `▶ ${game.title}`;
     canvas.innerHTML = '';
@@ -721,8 +606,8 @@ function openGame(game) {
         overlay.style.display = 'none';
         canvas.innerHTML = '';
         if (isMobile) {
-            player.requestFullscreen?.().catch(()=>{});
-            try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
+            player.requestFullscreen?.().catch(() => {});
+            try { screen.orientation?.lock('landscape').catch(() => {}); } catch(e) {}
             if (game.controls) renderSmartControls(game.id, game.controls, player);
         }
         if (game.type === 'swf') {
@@ -840,13 +725,8 @@ function initFullscreen() {
     });
 }
 
-/* =============================================
-   SEO: JSON-LD + نص مخفي (للـ Firebase-only fallback)
-   ============================================= */
 function injectSEOSchema() {
-    // إذا كان الـ Server Snapshot موجوداً، لا نكرر schema موجودة
     if (window.__serverSnapshot && document.getElementById('server-games-schema')) return;
-
     document.getElementById('games-schema')?.remove();
     document.getElementById('seo-text-block')?.remove();
 
@@ -871,7 +751,6 @@ function injectSEOSchema() {
             }
         }))
     };
-
     const script = document.createElement('script');
     script.id = 'games-schema';
     script.type = 'application/ld+json';

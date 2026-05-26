@@ -24,9 +24,13 @@ async function fetchGamesFromFirebase() {
             return [];
         }
         
-        // تصفية الألعاب الصالحة فقط (التي لها downloadUrl)
+        // تصفية الألعاب: تجاهل اللعبة الممنوعة (ban_01) وتجاهل أي لعبة بدون downloadUrl
         const games = Object.entries(data)
-            .filter(([key, game]) => game.downloadUrl && game.downloadUrl.trim() !== '')
+            .filter(([key, game]) => {
+                if (key === 'ban_01') return false;                 // مستبعدة
+                if (!game.downloadUrl || game.downloadUrl.trim() === '') return false;
+                return true;
+            })
             .map(([key, game]) => ({
                 id: key,
                 title: game.name || 'بدون اسم',
@@ -36,7 +40,8 @@ async function fetchGamesFromFirebase() {
                 type: game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
                 description: game.description || '',
                 description_en: game.description_en || '',
-                categories: game.categories || []
+                categories: game.categories || [],
+                controls: game.controls || null      // <-- إضافة الـ controls
             }));
         
         console.log(`✅ [Build] تم جلب ${games.length} لعبة من Firebase.`);
@@ -181,13 +186,13 @@ ${gridHTML}
 
     // ===== تطبيق الحقن على index.html =====
 
-    // أ) إزالة كود fetch القديم من الـ <head> (السكريبت الذي يجلب من Firebase في الـ head)
+    // أ) إزالة كود fetch القديم من الـ <head>
     html = html.replace(
         /<!-- جلب مسبق من Firebase لجوجل \(SEO فوري\) -->[\s\S]*?<\/script>/,
         '<!-- ✅ Firebase SEO fetch replaced by build.js static injection -->'
     );
 
-    // ب) إزالة الـ keywords العشوائية واستبدالها بـ keywords نظيفة
+    // ب) تحديث الـ keywords
     html = html.replace(
         /<meta name="keywords"[^>]*>/,
         `<meta name="keywords" content="ألعاب فلاش, العاب فلاش قديمة, العاب فلاش للاندرويد, محاكي فلاش للموبايل, flash games android, retro flash games, nostagames, fireboy watergirl, papa's games, hobo game, jacksmith, cactus mccoy">`
@@ -218,6 +223,5 @@ ${gridHTML}
 // تشغيل عملية البناء
 build().catch(err => {
     console.error('💥 [Build] فشل البناء:', err);
-    // لا نوقف عملية النشر - الموقع سيعمل بدون snapshot
     process.exit(0);
 });
