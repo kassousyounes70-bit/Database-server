@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://nostagames.vercel.app/sitemap.xml

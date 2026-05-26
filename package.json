@@ -1,0 +1,11 @@
+{
+  "name": "nostagames",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

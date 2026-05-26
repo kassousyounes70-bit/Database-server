@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NostGames - اتصل بنا</title>
+    <meta name="description" content="تواصل مع فريق NostGames عبر البريد الإلكتروني أو حسابات التواصل الاجتماعي.">
+    <link rel="icon" type="image/png" href="images/icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .contact-container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: var(--surface);
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+        .contact-container h1 {
+            font-family: var(--font);
+            font-size: 1.5rem;
+            color: var(--yellow);
+            margin-bottom: 20px;
+        }
+        .contact-container > p {
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+        .contact-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .contact-card {
+            display: block;
+            background: var(--bg2);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+        .contact-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--cyan);
+        }
+        .contact-card i {
+            font-size: 2.5rem;
+            color: var(--cyan);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .contact-card h3 {
+            font-family: var(--font);
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+        .contact-card p {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin: 0;
+        }
+        .back-home {
+            display: inline-block;
+            margin-top: 20px;
+            font-family: var(--font);
+            font-size: 0.8rem;
+            background: var(--purple);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #fff;
+        }
+        .back-home:hover { background: var(--cyan); }
+        /* تنسيق البريد الإلكتروني داخل المربع */
+        .contact-card .email-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 5px;
+        }
+        .contact-card .email-link:hover {
+            color: var(--yellow);
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-overlay"></div>
+    <div class="site-wrapper" style="padding: 20px;">
+        <div class="contact-container">
+            <h1><i class="fa-solid fa-envelope"></i> اتصل بنا</h1>
+            <p>نرحب بأسئلتك، اقتراحاتك، أو أي استفسار حول الألعاب أو التطبيق.</p>
+
+            <div class="contact-methods">
+                <!-- البريد الإلكتروني (لا يفتح كرابط عادي، لكننا نجعله قابلاً للنقر) -->
+                <a href="mailto:kassousyounes70@gmail.com" class="contact-card">
+                    <i class="fa-solid fa-envelope"></i>
+                    <h3>البريد الإلكتروني</h3>
+                    <p>kassousyounes70@gmail.com</p>
+                    <p>نرد عادة خلال 24-48 ساعة</p>
+                </a>
+
+                <!-- تيليجرام -->
+                <a href="https://t.me/Nostagames" target="_blank" class="contact-card">
+                    <i class="fa-brands fa-telegram"></i>
+                    <h3>تيليجرام</h3>
+                    <p>@Nostagames</p>
+                </a>
+
+                <!-- انستقرام -->
+                <a href="https://ig.me/j/AbbFojH8OYaP8HDa/" target="_blank" class="contact-card">
+                    <i class="fa-brands fa-instagram"></i>
+                    <h3>انستقرام</h3>
+                    <p>NostGames Instagram</p>
+                </a>
+            </div>
+
+            <a href="index.html" class="back-home"><i class="fa-solid fa-arrow-right"></i> العودة إلى الصفحة الرئيسية</a>
+        </div>
+        <footer class="site-footer">
+            <p>© 2025 NostGames · جميع الحقوق محفوظة</p>
+            <p class="footer-sub">صُنع بـ ❤️ لمحبي ألعاب الطفولة</p>
+        </footer>
+    </div>
+</body>
+</html>
