@@ -304,13 +304,7 @@ function showGamePanel(game) {
    عناكب جوجل تتصفح بحرية كاملة ✅
    ============================================= */
 
-// نتيجة الكشف مؤقتة حتى لا نكرر الفحص
-let _adBlockResult = null;
-
 async function checkAdBlock() {
-    // إذا فحصنا مسبقاً استخدم النتيجة المحفوظة
-    if (_adBlockResult !== null) return _adBlockResult;
-
     // طريقة 1: فحص عناصر الـ bait في DOM
     const bait1 = document.getElementById('ab-bait1');
     const bait2 = document.getElementById('ab-bait2');
@@ -322,21 +316,17 @@ async function checkAdBlock() {
         getComputedStyle(bait1).visibility === 'hidden' ||
         getComputedStyle(bait2).display    === 'none';
 
-    if (domBlocked) { _adBlockResult = true; return true; }
+    if (domBlocked) return true;
 
-    // طريقة 2: محاولة جلب ملف إعلاني معروف (الأقوى)
+    // طريقة 2: محاولة جلب ملف إعلاني معروف
     try {
-        const res = await fetch(
+        await fetch(
             'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
             { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }
         );
-        // إذا وصلنا هنا الطلب نجح — لا يوجد مانع
-        _adBlockResult = false;
-        return false;
+        return false; // نجح الطلب — لا يوجد مانع
     } catch (e) {
-        // الطلب فشل — مانع الإعلانات يحجبه
-        _adBlockResult = true;
-        return true;
+        return true;  // فشل الطلب — يوجد مانع
     }
 }
 
@@ -345,33 +335,25 @@ async function showAdBlockWall(onPass) {
     const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
     if (isBot) { onPass(); return; }
 
+    // فحص جديد في كل مرة بدون cache
     const blocked = await checkAdBlock();
     if (!blocked) { onPass(); return; }
 
-    // يوجد مانع إعلانات — أظهر الجدار
+    // يوجد مانع — أظهر الجدار
     const wall = document.getElementById('adblock-wall');
     if (!wall) { onPass(); return; }
 
     wall.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // استبدال زر المتابعة لتجنب تراكم المستمعين
+    // استبدال الزر لتجنب تراكم المستمعين
     const oldBtn = document.getElementById('adblock-continue-btn');
     const newBtn = oldBtn.cloneNode(true);
     oldBtn.parentNode.replaceChild(newBtn, oldBtn);
 
-    newBtn.addEventListener('click', async () => {
-        // أعد الفحص من جديد بعد ما يدّعي أنه عطّله
-        _adBlockResult = null;
-        const stillBlocked = await checkAdBlock();
-        if (stillBlocked) {
-            const note = document.querySelector('.adblock-note');
-            if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً ثم أعد تحميل الصفحة.';
-        } else {
-            wall.classList.add('hidden');
-            document.body.style.overflow = '';
-            onPass();
-        }
+    newBtn.addEventListener('click', () => {
+        // أعد تحميل الصفحة — الحل الأضمن لضمان فحص نظيف
+        location.reload();
     });
 }
 
