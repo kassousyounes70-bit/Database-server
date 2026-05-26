@@ -235,7 +235,7 @@ function renderGames(filterText = '') {
 }
 
 /* =============================================
-   POPUP MODAL
+   POPUP MODAL — وسط الشاشة مع Blur
    ============================================= */
 function showGamePanel(game) {
     document.getElementById('game-panel')?.remove();
@@ -245,29 +245,53 @@ function showGamePanel(game) {
         ? (game.description || game.description_en || '')
         : (game.description_en || game.description || '');
 
+    const ageColors = {
+        '+3': '#2ecc71', '+7': '#3498db',
+        '+12': '#f39c12', '+16': '#e67e22', '+18': '#e74c3c'
+    };
+    const ageColor = ageColors[game.ageRating] || '#2ecc71';
+    const cats = (game.categories || []).map(c => `<span class="panel-cat">${c}</span>`).join('');
+
     const panel = document.createElement('div');
     panel.id = 'game-panel';
-    panel.className = 'game-panel-overlay';
+    panel.className = 'game-panel-backdrop';
     panel.innerHTML = `
-        <div class="game-panel-modal">
-            <button class="panel-close" id="panel-close-btn">✕</button>
-            <div class="panel-top">
-                <img src="${game.image}" alt="${game.title}" class="panel-img">
-                <div class="panel-info">
-                    <h3 class="panel-title">${game.title}</h3>
-                    <span class="panel-age age-badge age-${(game.ageRating||'+3').replace('+','')}">${game.ageRating}</span>
-                    <div class="panel-cats">${(game.categories||[]).map(c=>`<span class="panel-cat">${c}</span>`).join('')}</div>
-                </div>
+        <div class="game-panel-modal" role="dialog" aria-modal="true">
+            <button class="panel-close-btn" id="panel-close-btn" aria-label="إغلاق">✕</button>
+            <div class="panel-hero">
+                <img src="${game.image}" alt="${game.title}" class="panel-icon" onerror="this.src='images/icon.png'">
+                <div class="panel-hero-glow" style="background:radial-gradient(circle, ${ageColor}33 0%, transparent 70%);"></div>
             </div>
-            <p class="panel-desc">${desc || 'لا يوجد وصف متاح.'}</p>
-            <button class="panel-play-btn" id="panel-play-btn">▶ العب الآن</button>
+            <div class="panel-body">
+                <h3 class="panel-title">${game.title}</h3>
+                <div class="panel-meta">
+                    <span class="panel-age-badge" style="background:${ageColor}22;color:${ageColor};border-color:${ageColor}66;">
+                        🔞 ${game.ageRating}
+                    </span>
+                    ${cats ? `<div class="panel-cats">${cats}</div>` : ''}
+                </div>
+                <p class="panel-desc">${desc || '<span class="panel-no-desc">لا يوجد وصف متاح لهذه اللعبة.</span>'}</p>
+            </div>
+            <button class="panel-play-btn" id="panel-play-btn">
+                <i class="fa-solid fa-play"></i> ابدأ اللعبة
+            </button>
         </div>
     `;
 
     document.body.appendChild(panel);
-    panel.addEventListener('click', e => { if (e.target === panel) panel.remove(); });
-    document.getElementById('panel-close-btn').onclick = () => panel.remove();
-    document.getElementById('panel-play-btn').onclick = () => { panel.remove(); openGame(game); };
+
+    function closePanel() {
+        panel.classList.add('panel-closing');
+        setTimeout(() => panel.remove(), 250);
+    }
+
+    const onKey = (e) => { if (e.key === 'Escape') { closePanel(); document.removeEventListener('keydown', onKey); } };
+    document.addEventListener('keydown', onKey);
+    panel.addEventListener('click', e => { if (e.target === panel) { closePanel(); document.removeEventListener('keydown', onKey); } });
+    document.getElementById('panel-close-btn').onclick = closePanel;
+    document.getElementById('panel-play-btn').onclick = () => { closePanel(); setTimeout(() => openGame(game), 260); };
+
+    requestAnimationFrame(() => panel.classList.add('panel-visible'));
 }
 
 /* =============================================
