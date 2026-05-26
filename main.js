@@ -1,5 +1,5 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v9.1 (Static Controls + Smart Layout)
+   NOSTAGAMES - MAIN ENGINE v9.0 (Hybrid Hydration + Smart Diff)
    المعمارية الهجينة: Server Snapshot + Firebase Live Sync
    ============================================= */
 
@@ -19,6 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// window.gamesDatabase قد تكون مملوءة بالفعل من build.js (Server Snapshot)
 window.gamesDatabase = window.gamesDatabase || [];
 window.secretGames = { games: [] };
 
@@ -35,7 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initSecretCode();
     initBackToTop();
 
+    // ==============================
+    // الترطيب الأولي (Initial Hydration)
+    // ==============================
     if (window.__serverSnapshot && window.gamesDatabase.length > 0) {
+        // البيانات جاهزة من الـ Server Snapshot — عرضها فوراً
         console.log(`[NostGames] ⚡ Hydrating from server snapshot: ${window.gamesDatabase.length} games`);
         renderGames();
         injectSEOSchema();
@@ -43,8 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
         initCarousel();
         initSearch();
         initRandomGame();
+
+        // مزامنة صامتة في الخلفية للألعاب الجديدة
         silentSyncWithFirebase();
     } else {
+        // لا يوجد snapshot (أول نشر أو بيئة تطوير) — الجلب المباشر
         console.log('[NostGames] No server snapshot found, fetching from Firebase directly...');
         fetchGamesFromFirebase();
     }
@@ -57,18 +65,23 @@ async function silentSyncWithFirebase() {
     try {
         const gamesRef = ref(db, 'games');
         const snapshot = await get(gamesRef);
+
         if (!snapshot.exists()) return;
+
         const data = snapshot.val();
 
+        // بناء Set من الـ IDs الموجودة مسبقاً في الـ snapshot
         const existingIds = new Set(window.gamesDatabase.map(g => g.id));
         let newGamesCount = 0;
 
         for (const key in data) {
-            if (key === 'ban_01') continue;  // تجاهل اللعبة الممنوعة
             const game = data[key];
             if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
+
+            // تجاهل الألعاب الموجودة بالفعل
             if (existingIds.has(key)) continue;
 
+            // لعبة جديدة لم تكن في الـ snapshot!
             const newGame = {
                 id: key,
                 title: game.name || "بدون اسم",
@@ -81,33 +94,48 @@ async function silentSyncWithFirebase() {
                 description_en: game.description_en || "",
                 categories: game.categories || []
             };
+
             window.gamesDatabase.push(newGame);
             existingIds.add(key);
             newGamesCount++;
+
+            // حقن بطاقة اللعبة الجديدة ديناميكياً في الـ Grid
             injectNewGameCard(newGame);
         }
 
         if (newGamesCount > 0) {
             console.log(`[NostGames] 🆕 Silent sync: added ${newGamesCount} new game(s) from Firebase`);
+            // تحديث محرك البحث بالألعاب الجديدة
             initSearch();
             initRandomGame();
         } else {
             console.log('[NostGames] ✅ Silent sync complete: no new games');
         }
+
     } catch (error) {
+        // فشل الـ sync الصامت لا يؤثر على الموقع
         console.warn('[NostGames] Silent sync failed (non-critical):', error.message);
     }
 }
 
+/* =============================================
+   الحقن الديناميكي للعبة الجديدة
+   ============================================= */
 function injectNewGameCard(game) {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
+
+    // التأكد من عدم وجود البطاقة بالفعل (guard)
     if (grid.querySelector(`[data-id="${game.id}"]`)) return;
+
     const card = buildGameCard(game);
     grid.appendChild(card);
     setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, 100);
 }
 
+/* =============================================
+   الجلب المباشر من Firebase (Fallback بدون Snapshot)
+   ============================================= */
 async function fetchGamesFromFirebase() {
     const grid = document.getElementById('games-grid');
     if (grid) grid.innerHTML = '<div class="pixel-loading-text" style="text-align:center;width:100%;padding:20px;color:#f1c40f;">جاري تحميل الألعاب...</div>';
@@ -115,13 +143,15 @@ async function fetchGamesFromFirebase() {
     try {
         const gamesRef = ref(db, 'games');
         const snapshot = await get(gamesRef);
+
         if (snapshot.exists()) {
             const data = snapshot.val();
             window.gamesDatabase = [];
+
             for (const key in data) {
-                if (key === 'ban_01') continue;
                 const game = data[key];
                 if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
+
                 window.gamesDatabase.push({
                     id: key,
                     title: game.name || "بدون اسم",
@@ -135,6 +165,7 @@ async function fetchGamesFromFirebase() {
                     categories: game.categories || []
                 });
             }
+
             renderGames();
             injectSEOSchema();
             initBgIcons();
@@ -150,6 +181,9 @@ async function fetchGamesFromFirebase() {
     }
 }
 
+/* =============================================
+   بناء بطاقة لعبة واحدة (مشترك بين render و inject)
+   ============================================= */
 function buildGameCard(game, idx = 0) {
     const card = document.createElement('div');
     card.className = 'game-card';
@@ -174,9 +208,13 @@ function buildGameCard(game, idx = 0) {
     card.appendChild(titleSpan);
     card.addEventListener('click', () => showGamePanel(game));
     setTimeout(() => { if (card.parentNode) card.classList.add('visible'); }, idx * 55);
+
     return card;
 }
 
+/* =============================================
+   عرض الألعاب في الـ Grid
+   ============================================= */
 function renderGames(filterText = '') {
     const grid = document.getElementById('games-grid');
     if (!grid) return;
@@ -190,6 +228,7 @@ function renderGames(filterText = '') {
             (game.description || '').toLowerCase().includes(lower)
         );
     }
+
     filtered.forEach((game, idx) => {
         grid.appendChild(buildGameCard(game, idx));
     });
@@ -238,17 +277,20 @@ function showGamePanel(game) {
             </button>
         </div>
     `;
+
     document.body.appendChild(panel);
 
     function closePanel() {
         panel.classList.add('panel-closing');
         setTimeout(() => panel.remove(), 250);
     }
+
     const onKey = (e) => { if (e.key === 'Escape') { closePanel(); document.removeEventListener('keydown', onKey); } };
     document.addEventListener('keydown', onKey);
     panel.addEventListener('click', e => { if (e.target === panel) { closePanel(); document.removeEventListener('keydown', onKey); } });
     document.getElementById('panel-close-btn').onclick = closePanel;
     document.getElementById('panel-play-btn').onclick = () => { closePanel(); setTimeout(() => openGame(game), 260); };
+
     requestAnimationFrame(() => panel.classList.add('panel-visible'));
 }
 
@@ -258,6 +300,7 @@ function showGamePanel(game) {
 function initAdBlockDetection() {
     const wall = document.getElementById('adblock-wall');
     const continueBtn = document.getElementById('adblock-continue-btn');
+
     function check1() {
         const bait = document.getElementById('ab-bait1');
         if (!bait) return true;
@@ -268,6 +311,8 @@ function initAdBlockDetection() {
         if (!bait) return true;
         return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
     }
+
+    // جدار الإعلانات: يعمل فقط عند التفاعل الفعلي (لا يمنع عناكب البحث)
     const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
     setTimeout(() => {
         if (isBot) return;
@@ -277,6 +322,7 @@ function initAdBlockDetection() {
             document.body.style.overflow = 'hidden';
         }
     }, 800);
+
     if (continueBtn) {
         continueBtn.addEventListener('click', () => {
             if (check1() || check2()) {
@@ -316,6 +362,7 @@ function initCounter() {
 function initSearch() {
     const searchInput = document.getElementById('search-games');
     if (!searchInput) return;
+    // إزالة المستمع القديم قبل إضافة جديد
     const newInput = searchInput.cloneNode(true);
     searchInput.parentNode.replaceChild(newInput, searchInput);
     let timeout;
@@ -328,6 +375,7 @@ function initSearch() {
 function initRandomGame() {
     const btn = document.getElementById('random-game-btn');
     if (!btn) return;
+    // إزالة المستمع القديم
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => {
@@ -455,128 +503,345 @@ function triggerRuffleKeyEvent(type, keyName) {
 }
 
 /* =============================================
-   SMART CONTROLS (ثابت: عصا يسار، أزرار يمين)
+   SMART CONTROLS v2 — يقرأ المفاتيح من Firebase فقط
+   Joystick ثابت يسار — أزرار أكشن مصطفة يمين
    ============================================= */
-function renderSmartControls(gameId, controlsData, container) {
-    if (!controlsData) return;
-    const p1 = controlsData.p1 || {};
-    const useWasd = controlsData.wasd === true;
-    const hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
-    const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
+let currentEditTarget = null;
+let controlsEditMode  = false;
 
-    const wrapper = document.createElement('div');
-    wrapper.id = 'smart-controls-wrapper';
-    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:160px;pointer-events:none;z-index:10000;direction:ltr;';
+// الترتيب الافتراضي الذكي للأزرار (يمين — مصطفة عموديًا)
+const DEFAULT_BTN_SIZE = 62;
+const DEFAULT_JOY_SIZE = 130;
 
-    const leftArea = document.createElement('div');
-    leftArea.style.cssText = 'position:absolute;bottom:15px;left:15px;pointer-events:auto;';
-    const rightArea = document.createElement('div');
-    rightArea.style.cssText = 'position:absolute;bottom:15px;right:15px;display:flex;gap:15px;pointer-events:auto;';
+function calcDefaultLayout(actionKeys) {
+    const layout = {};
+    // Joystick: يسار وسط-أسفل
+    layout['JOYSTICK'] = { x: 3, y: 55, size: DEFAULT_JOY_SIZE };
 
-    // عصا التحكم (يسار)
-    if (hasJoystick) {
-        const joy = createAnalogStick(useWasd);
-        joy.style.width = '120px';
-        joy.style.height = '120px';
-        joy.style.borderRadius = '50%';
-        joy.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        joy.style.border = '2px solid rgba(255,255,255,0.6)';
-        leftArea.appendChild(joy);
-    }
-
-    // أزرار الحركة (يمين)
-    actionKeys.forEach(key => {
-        const btn = createActionButton(key);
-        btn.style.width = '70px';
-        btn.style.height = '70px';
-        btn.style.borderRadius = '50%';
-        btn.style.backgroundColor = 'rgba(0,0,0,0.6)';
-        btn.style.border = '2px solid white';
-        btn.style.color = 'white';
-        btn.style.fontSize = '24px';
-        btn.style.fontWeight = 'bold';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.justifyContent = 'center';
-        btn.style.touchAction = 'none';
-        rightArea.appendChild(btn);
+    // أزرار الأكشن: عمود يمين مرتب
+    const total  = actionKeys.length;
+    const startY = total <= 2 ? 55 : 40;
+    const step   = total <= 4 ? 16 : 12;
+    actionKeys.forEach((key, i) => {
+        layout[key] = {
+            x:    total <= 2 ? 82 : (i % 2 === 0 ? 78 : 88),
+            y:    startY + i * step,
+            size: DEFAULT_BTN_SIZE
+        };
     });
-
-    wrapper.appendChild(leftArea);
-    wrapper.appendChild(rightArea);
-    container.appendChild(wrapper);
+    return layout;
 }
 
-function createAnalogStick(useWasd) {
+function renderSmartControls(gameId, controlsData, container) {
+    if (!controlsData) return;
+
+    // p1 قد يكون مصفوفة (من build.js الجديد) أو كائن (من Firebase مباشرة)
+    let p1Keys = [];
+    if (Array.isArray(controlsData.p1)) {
+        p1Keys = controlsData.p1;                                      // ['JOYSTICK','A','S']
+    } else if (controlsData.p1 && typeof controlsData.p1 === 'object') {
+        p1Keys = Object.keys(controlsData.p1);                         // من Firebase القديم
+    }
+
+    const useWasd    = controlsData.wasd === true;
+    const hasJoystick = p1Keys.includes('JOYSTICK') || useWasd;
+    const actionKeys  = p1Keys.filter(k => k !== 'JOYSTICK');
+
+    if (!hasJoystick && actionKeys.length === 0) return;
+
+    /* ── wrapper الرئيسي ── */
+    const wrapper = document.createElement('div');
+    wrapper.id = 'smart-controls-wrapper';
+    wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:9999;direction:ltr;overflow:hidden;';
+
+    /* ── شريط الأدوات ── */
+    const toolbar = document.createElement('div');
+    toolbar.id    = 'controls-toolbar';
+    toolbar.style.cssText = [
+        'position:absolute;top:8px;left:50%;transform:translateX(-50%);',
+        'display:flex;gap:8px;pointer-events:auto;z-index:10000;',
+        'background:rgba(0,0,0,0.65);padding:5px 14px;border-radius:24px;',
+        'border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(6px);'
+    ].join('');
+
+    const mkTbBtn = (icon, title) => {
+        const b = document.createElement('button');
+        b.innerHTML = icon;
+        b.title = title;
+        b.style.cssText = 'background:transparent;color:#ddd;border:none;font-size:20px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:color .2s,background .2s;line-height:1;';
+        b.onmouseenter = () => b.style.background = 'rgba(255,255,255,0.12)';
+        b.onmouseleave = () => b.style.background = 'transparent';
+        return b;
+    };
+
+    const flipBtn    = mkTbBtn('🔄', 'قلب الجانبين');
+    const editBtn    = mkTbBtn('✏️', 'تحريك الأزرار');
+    const plusBtn    = mkTbBtn('🔍+', 'تكبير');
+    const minusBtn   = mkTbBtn('🔍-', 'تصغير');
+    const saveBtn    = mkTbBtn('💾', 'حفظ');
+    const resetBtn   = mkTbBtn('↩️', 'إعادة الضبط');
+
+    // نخفي أزرار التعديل حتى وضع التحرير
+    [plusBtn, minusBtn, saveBtn, resetBtn].forEach(b => b.style.display = 'none');
+    [flipBtn, editBtn, plusBtn, minusBtn, saveBtn, resetBtn].forEach(b => toolbar.appendChild(b));
+    wrapper.appendChild(toolbar);
+
+    /* ── حاوية العناصر ── */
+    const elContainer = document.createElement('div');
+    elContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+    wrapper.appendChild(elContainer);
+    container.appendChild(wrapper);
+
+    /* ── تحميل الـ layout (من localStorage أو الحساب الافتراضي) ── */
+    let layout = {};
+    try { layout = JSON.parse(localStorage.getItem('nosta_ctrls_' + gameId)) || {}; } catch(e) {}
+    if (!Object.keys(layout).length) {
+        layout = calcDefaultLayout(actionKeys);
+    }
+
+    /* ── إنشاء عناصر التحكم ── */
+    const ctrlEls = [];
+
+    if (hasJoystick) {
+        const jd  = layout['JOYSTICK'] || { x:3, y:55, size: DEFAULT_JOY_SIZE };
+        const joy = buildAnalogStick(useWasd);
+        placeEl(joy, jd.x, jd.y, jd.size);
+        joy.dataset.ctrlId = 'JOYSTICK';
+        elContainer.appendChild(joy);
+        ctrlEls.push(joy);
+    }
+
+    actionKeys.forEach(key => {
+        const bd  = layout[key] || { x:80, y:60, size: DEFAULT_BTN_SIZE };
+        const btn = buildActionBtn(key);
+        placeEl(btn, bd.x, bd.y, bd.size);
+        btn.dataset.ctrlId = key;
+        elContainer.appendChild(btn);
+        ctrlEls.push(btn);
+    });
+
+    /* ── قلب الجانبين ── */
+    flipBtn.onclick = () => {
+        ctrlEls.forEach(el => {
+            const lp  = parseFloat(el.style.left);       // نسبة مئوية
+            const sw  = parseFloat(el.style.width);
+            const swP = sw / window.innerWidth * 100;
+            el.style.left = Math.max(0, 100 - lp - swP) + '%';
+        });
+    };
+
+    /* ── وضع التحرير ── */
+    editBtn.onclick = () => {
+        controlsEditMode = true;
+        editBtn.style.color = '#f1c40f';
+        [plusBtn, minusBtn, saveBtn, resetBtn].forEach(b => b.style.display = '');
+        wrapper.style.background = 'rgba(0,0,0,0.35)';
+        ctrlEls.forEach(el => {
+            el.classList.add('ctrl-edit-mode');
+            el.style.outline = '2px dashed rgba(0,255,0,0.7)';
+            el.style.outlineOffset = '2px';
+        });
+    };
+
+    /* ── حفظ ── */
+    saveBtn.onclick = () => {
+        controlsEditMode = false;
+        currentEditTarget = null;
+        editBtn.style.color = '#ddd';
+        [plusBtn, minusBtn, saveBtn, resetBtn].forEach(b => b.style.display = 'none');
+        wrapper.style.background = '';
+        const saved = {};
+        ctrlEls.forEach(el => {
+            el.classList.remove('ctrl-edit-mode');
+            el.style.outline = '';
+            saved[el.dataset.ctrlId] = {
+                x:    parseFloat(el.style.left),
+                y:    parseFloat(el.style.top),
+                size: parseFloat(el.style.width)
+            };
+        });
+        localStorage.setItem('nosta_ctrls_' + gameId, JSON.stringify(saved));
+    };
+
+    /* ── تكبير/تصغير العنصر المحدد ── */
+    plusBtn.onclick  = () => resizeTarget(+8);
+    minusBtn.onclick = () => resizeTarget(-8);
+    function resizeTarget(delta) {
+        if (!currentEditTarget) return;
+        const s = Math.max(36, parseFloat(currentEditTarget.style.width) + delta);
+        currentEditTarget.style.width = currentEditTarget.style.height = s + 'px';
+        // تحديث font-size زر الأكشن
+        const lbl = currentEditTarget.querySelector('.ctrl-key-label');
+        if (lbl) lbl.style.fontSize = Math.max(10, s * 0.3) + 'px';
+    }
+
+    /* ── إعادة ضبط الـ layout ── */
+    resetBtn.onclick = () => {
+        localStorage.removeItem('nosta_ctrls_' + gameId);
+        const fresh = calcDefaultLayout(actionKeys);
+        ctrlEls.forEach(el => {
+            const key = el.dataset.ctrlId;
+            const d   = fresh[key] || { x:50, y:50, size: DEFAULT_BTN_SIZE };
+            placeEl(el, d.x, d.y, d.size);
+        });
+    };
+
+    /* ── السحب في وضع التحرير (Touch) ── */
+    ctrlEls.forEach(el => {
+        let dragging = false, startX, startY, initL, initT;
+
+        el.addEventListener('touchstart', e => {
+            if (!controlsEditMode) return;
+            e.preventDefault(); e.stopPropagation();
+            dragging = true;
+            currentEditTarget = el;
+            ctrlEls.forEach(c => c.style.outlineColor = 'rgba(0,255,0,0.7)');
+            el.style.outlineColor = '#ff0';
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            initL  = parseFloat(el.style.left) / 100 * window.innerWidth;
+            initT  = parseFloat(el.style.top)  / 100 * window.innerHeight;
+        }, { passive: false });
+
+        el.addEventListener('touchmove', e => {
+            if (!dragging || !controlsEditMode) return;
+            e.preventDefault();
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            const sw = parseFloat(el.style.width);
+            el.style.left = Math.max(0, Math.min((initL + dx) / window.innerWidth  * 100, 100 - sw / window.innerWidth  * 100)) + '%';
+            el.style.top  = Math.max(0, Math.min((initT + dy) / window.innerHeight * 100, 100 - sw / window.innerHeight * 100)) + '%';
+        }, { passive: false });
+
+        el.addEventListener('touchend',   () => { dragging = false; });
+        el.addEventListener('touchcancel',() => { dragging = false; });
+    });
+}
+
+/* ── مساعد: وضع عنصر بنسب مئوية ── */
+function placeEl(el, xPct, yPct, sizePx) {
+    el.style.position   = 'absolute';
+    el.style.left       = xPct   + '%';
+    el.style.top        = yPct   + '%';
+    el.style.width      = sizePx + 'px';
+    el.style.height     = sizePx + 'px';
+    el.style.pointerEvents = 'auto';
+}
+
+/* ── بناء العصا التناظرية ── */
+function buildAnalogStick(useWasd) {
     const base = document.createElement('div');
-    base.style.position = 'relative';
-    base.style.touchAction = 'none';
+    base.className = 'ctrl-joystick-base';
+    base.style.cssText = [
+        'border-radius:50%;position:relative;touch-action:none;',
+        'background:radial-gradient(circle at 35% 35%, rgba(255,255,255,0.18), rgba(0,0,0,0.5));',
+        'border:2px solid rgba(255,255,255,0.25);',
+        'box-shadow:0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);'
+    ].join('');
+
     const knob = document.createElement('div');
-    knob.style.position = 'absolute';
-    knob.style.width = '40%';
-    knob.style.height = '40%';
-    knob.style.backgroundColor = 'rgba(255,255,255,0.8)';
-    knob.style.borderRadius = '50%';
-    knob.style.top = '30%';
-    knob.style.left = '30%';
-    knob.style.transition = 'transform 0.05s linear';
+    knob.style.cssText = [
+        'width:42%;height:42%;border-radius:50%;',
+        'background:radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8), rgba(180,180,180,0.4));',
+        'position:absolute;top:29%;left:29%;',
+        'transition:transform 0.08s ease-out;',
+        'box-shadow:0 2px 8px rgba(0,0,0,0.4);'
+    ].join('');
     base.appendChild(knob);
 
     let activeKeys = [];
-    const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
-    const updateKeys = (newKeys) => {
-        activeKeys.forEach(k => { if (!newKeys.includes(k)) triggerRuffleKeyEvent('keyup', k); });
-        newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
-        activeKeys = newKeys;
+    const mapping  = useWasd
+        ? { U:'W', D:'S', L:'A', R:'D' }
+        : { U:'UP', D:'DOWN', L:'LEFT', R:'RIGHT' };
+
+    const updateKeys = (next) => {
+        activeKeys.forEach(k => { if (!next.includes(k)) triggerRuffleKeyEvent('keyup',   k); });
+        next.forEach(k =>       { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
+        activeKeys = next;
     };
 
-    function handleMove(e) {
+    const handleMove = e => {
+        if (controlsEditMode) return;
         e.preventDefault();
         const rect = base.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
+        const cx = rect.left + rect.width  / 2;
+        const cy = rect.top  + rect.height / 2;
         const mr = rect.width / 2;
-        let dx = (e.touches ? e.touches[0].clientX : e.clientX) - cx;
-        let dy = (e.touches ? e.touches[0].clientY : e.clientY) - cy;
+        let dx = e.touches[0].clientX - cx;
+        let dy = e.touches[0].clientY - cy;
         const dist = Math.hypot(dx, dy);
-        if (dist > mr) { dx = dx * mr / dist; dy = dy * mr / dist; }
-        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        if (dist > mr) { dx = dx / dist * mr; dy = dy / dist * mr; }
+        knob.style.transform  = `translate(${dx}px,${dy}px)`;
+        knob.style.transition = 'none';
         const angle = Math.atan2(dy, dx) * (180 / Math.PI);
         let dirs = [];
-        if (dist > mr * 0.2) {
-            if (angle > -112.5 && angle < -67.5) dirs.push(mapping.U);
-            else if (angle > 67.5 && angle < 112.5) dirs.push(mapping.D);
-            else if (angle > -22.5 && angle < 22.5) dirs.push(mapping.R);
-            else if (angle > 157.5 || angle < -157.5) dirs.push(mapping.L);
-            else if (angle >= -67.5 && angle <= -22.5) dirs.push(mapping.U, mapping.R);
-            else if (angle >= -157.5 && angle <= -112.5) dirs.push(mapping.U, mapping.L);
-            else if (angle >= 22.5 && angle <= 67.5) dirs.push(mapping.D, mapping.R);
-            else if (angle >= 112.5 && angle <= 157.5) dirs.push(mapping.D, mapping.L);
+        if (dist > mr * 0.18) {
+            if      (angle > -112.5 && angle < -67.5)  dirs = [mapping.U];
+            else if (angle >   67.5 && angle < 112.5)  dirs = [mapping.D];
+            else if (angle >  -22.5 && angle <  22.5)  dirs = [mapping.R];
+            else if (angle >  157.5 || angle < -157.5) dirs = [mapping.L];
+            else if (angle >= -67.5 && angle <= -22.5) dirs = [mapping.U, mapping.R];
+            else if (angle >=-157.5 && angle <=-112.5) dirs = [mapping.U, mapping.L];
+            else if (angle >=  22.5 && angle <=  67.5) dirs = [mapping.D, mapping.R];
+            else if (angle >= 112.5 && angle <= 157.5) dirs = [mapping.D, mapping.L];
         }
         updateKeys(dirs);
-    }
-    function reset() {
-        knob.style.transform = 'translate(0px, 0px)';
+    };
+    const handleEnd = e => {
+        if (controlsEditMode) return;
+        e.preventDefault();
+        knob.style.transform  = 'translate(0,0)';
+        knob.style.transition = 'transform 0.15s ease-out';
         updateKeys([]);
-    }
+    };
     base.addEventListener('touchstart', handleMove, { passive: false });
-    base.addEventListener('touchmove', handleMove, { passive: false });
-    base.addEventListener('touchend', reset);
-    base.addEventListener('touchcancel', reset);
+    base.addEventListener('touchmove',  handleMove, { passive: false });
+    base.addEventListener('touchend',   handleEnd,  { passive: false });
+    base.addEventListener('touchcancel',handleEnd,  { passive: false });
     return base;
 }
 
-function createActionButton(keyName) {
+/* ── بناء زر أكشن (يرسم الحرف كنص) ── */
+function buildActionBtn(keyName) {
     const btn = document.createElement('button');
-    const display = keyName.toUpperCase() === 'SPACE' ? 'SP' : keyName.toUpperCase();
-    btn.textContent = display;
-    const press = (e) => { e.preventDefault(); triggerRuffleKeyEvent('keydown', keyName); };
-    const release = (e) => { e.preventDefault(); triggerRuffleKeyEvent('keyup', keyName); };
-    btn.addEventListener('touchstart', press, { passive: false });
-    btn.addEventListener('touchend', release);
-    btn.addEventListener('touchcancel', release);
-    btn.addEventListener('mousedown', press);
-    btn.addEventListener('mouseup', release);
+    btn.className = 'ctrl-action-btn';
+
+    // تحويل الأسماء الطويلة لاختصار مقروء
+    const LABELS = { 'SPACE':'SPC','UP':'▲','DOWN':'▼','LEFT':'◄','RIGHT':'►' };
+    const label  = LABELS[keyName.toUpperCase()] || keyName.toUpperCase().slice(0, 3);
+
+    const lbl = document.createElement('span');
+    lbl.className        = 'ctrl-key-label';
+    lbl.textContent      = label;
+    lbl.style.cssText    = 'font-family:monospace;font-weight:bold;font-size:18px;color:#fff;pointer-events:none;user-select:none;text-shadow:0 1px 3px rgba(0,0,0,0.8);';
+    btn.appendChild(lbl);
+
+    btn.style.cssText = [
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;',
+        'touch-action:none;cursor:pointer;',
+        'background:radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22), rgba(0,0,0,0.55));',
+        'border:2px solid rgba(255,255,255,0.35);',
+        'box-shadow:0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);',
+        'transition:transform .08s, background .08s;'
+    ].join('');
+
+    const press = e => {
+        if (controlsEditMode) return;
+        e.preventDefault();
+        btn.style.background = 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.55), rgba(80,80,80,0.6))';
+        btn.style.transform  = 'scale(0.9)';
+        triggerRuffleKeyEvent('keydown', keyName);
+    };
+    const release = e => {
+        if (controlsEditMode) return;
+        e.preventDefault();
+        btn.style.background = 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22), rgba(0,0,0,0.55))';
+        btn.style.transform  = 'scale(1)';
+        triggerRuffleKeyEvent('keyup', keyName);
+    };
+    btn.addEventListener('touchstart',  press,   { passive: false });
+    btn.addEventListener('touchend',    release,  { passive: false });
+    btn.addEventListener('touchcancel', release,  { passive: false });
     return btn;
 }
 
@@ -584,18 +849,24 @@ function createActionButton(keyName) {
    GAME PLAYER
    ============================================= */
 function openGame(game) {
-    const player = document.getElementById('game-player');
-    const canvas = document.getElementById('game-canvas');
-    const overlay = document.getElementById('game-overlay');
-    const titleEl = document.getElementById('playing-title');
+    const player   = document.getElementById('game-player');
+    const canvas   = document.getElementById('game-canvas');
+    const overlay  = document.getElementById('game-overlay');
+    const titleEl  = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
-    if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
+    if (!player||!canvas||!overlay||!titleEl||!closeBtn) return;
 
     titleEl.textContent = `▶ ${game.title}`;
-    canvas.innerHTML = '';
+    canvas.innerHTML    = '';
     overlay.style.display = 'flex';
     player.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+
+    // ── منع تمدد Flash خارج الحدود ──
+    canvas.style.overflow   = 'hidden';
+    canvas.style.position   = 'relative';
+    canvas.style.contain    = 'strict';   // يمنع أي رسم خارج الـ canvas
+    player.style.overflow   = 'hidden';
 
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     let launched = false;
@@ -605,19 +876,20 @@ function openGame(game) {
         launched = true;
         overlay.style.display = 'none';
         canvas.innerHTML = '';
+
         if (isMobile) {
-            player.requestFullscreen?.().catch(() => {});
-            try { screen.orientation?.lock('landscape').catch(() => {}); } catch(e) {}
-            if (game.controls) renderSmartControls(game.id, game.controls, player);
+            player.requestFullscreen?.().catch(()=>{});
+            try { screen.orientation?.lock('landscape').catch(()=>{}); } catch(e) {}
         }
+
         if (game.type === 'swf') {
             window.RufflePlayer = window.RufflePlayer || {};
             const ruffle = window.RufflePlayer.newest();
             if (ruffle) {
                 const p = ruffle.createPlayer();
-                p.style.width = '100%';
-                p.style.height = '100%';
-                p.style.touchAction = 'none';
+                // تأكيد حصر Ruffle داخل الـ canvas فقط
+                p.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;max-width:100%;max-height:100%;';
+                p.setAttribute('tabindex', '0');
                 canvas.appendChild(p);
                 let finalUrl = game.src;
                 if (finalUrl.includes('archive.org') || finalUrl.startsWith('http')) {
@@ -627,11 +899,19 @@ function openGame(game) {
             }
         } else if (game.type === 'iframe') {
             const iframe = document.createElement('iframe');
-            iframe.src = game.src;
+            iframe.src             = game.src;
             iframe.allowFullscreen = true;
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
+            iframe.style.cssText   = 'width:100%;height:100%;border:none;display:block;overflow:hidden;';
             canvas.appendChild(iframe);
+        }
+
+        // ── عرض أزرار التحكم بعد تحميل اللعبة ──
+        if (isMobile && game.controls) {
+            // تأخير بسيط لضمان ظهور الأزرار فوق اللعبة
+            setTimeout(() => {
+                document.getElementById('smart-controls-wrapper')?.remove();
+                renderSmartControls(game.id, game.controls, player);
+            }, 400);
         }
     };
 
@@ -639,10 +919,15 @@ function openGame(game) {
 
     closeBtn.onclick = () => {
         player.classList.add('hidden');
-        canvas.innerHTML = '';
-        launched = false;
-        overlay.style.display = 'flex';
-        document.body.style.overflow = '';
+        canvas.innerHTML              = '';
+        canvas.style.overflow         = '';
+        canvas.style.contain          = '';
+        player.style.overflow         = '';
+        launched                      = false;
+        overlay.style.display         = 'flex';
+        document.body.style.overflow  = '';
+        controlsEditMode              = false;
+        currentEditTarget             = null;
         document.getElementById('smart-controls-wrapper')?.remove();
         try { screen.orientation?.unlock(); } catch(e) {}
         if (document.fullscreenElement) document.exitFullscreen?.();
@@ -725,8 +1010,13 @@ function initFullscreen() {
     });
 }
 
+/* =============================================
+   SEO: JSON-LD + نص مخفي (للـ Firebase-only fallback)
+   ============================================= */
 function injectSEOSchema() {
+    // إذا كان الـ Server Snapshot موجوداً، لا نكرر schema موجودة
     if (window.__serverSnapshot && document.getElementById('server-games-schema')) return;
+
     document.getElementById('games-schema')?.remove();
     document.getElementById('seo-text-block')?.remove();
 
@@ -751,6 +1041,7 @@ function injectSEOSchema() {
             }
         }))
     };
+
     const script = document.createElement('script');
     script.id = 'games-schema';
     script.type = 'application/ld+json';

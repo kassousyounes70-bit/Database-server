@@ -1,227 +1,175 @@
 /**
- * NOSTAGAMES - Build Script (Pre-render Engine)
+ * NOSTAGAMES - Build Script v2.0
  * يعمل أثناء النشر على Vercel فقط
- * المهمة: جلب الألعاب من Firebase وحقنها في index.html كـ Static Snapshot
+ * يجلب من Firebase: id, name, ageRating, controls(keys only), description, description_en, iconUrl, downloadUrl
  */
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
 const FIREBASE_URL = 'https://n-core-nostagames-default-rtdb.firebaseio.com/games.json';
-const INDEX_PATH = path.join(__dirname, 'index.html');
+const INDEX_PATH   = path.join(__dirname, 'index.html');
 
-// ===== الاتصال بـ Firebase =====
+// الألعاب المحظورة (بالـ ID)
+const BANNED_IDS = ['meaty_boner_8421'];
+
+/* ── استخراج مفاتيح الأزرار فقط (بدون صور/إحداثيات/حجم) ── */
+function extractControlKeys(controlsRaw) {
+    if (!controlsRaw || typeof controlsRaw !== 'object') return null;
+
+    const result = { wasd: controlsRaw.wasd === true, p1: [], p2: [] };
+
+    ['p1', 'p2'].forEach(player => {
+        const raw = controlsRaw[player];
+        if (!raw || typeof raw !== 'object') return;
+        // نأخذ المفاتيح فقط — نتجاهل الـ image والإحداثيات
+        result[player] = Object.keys(raw).filter(k => k !== ''); // ['JOYSTICK','A','S',...]
+    });
+
+    // إذا كلاهما فارغان لا نُرجع controls
+    if (result.p1.length === 0 && result.p2.length === 0) return null;
+    return result;
+}
+
+/* ── جلب الألعاب من Firebase ── */
 async function fetchGamesFromFirebase() {
-    console.log('🔥 [Build] جاري الاتصال بـ Firebase...');
-    
+    console.log('🔥 [Build] الاتصال بـ Firebase...');
     try {
         const response = await fetch(FIREBASE_URL);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
+
         const data = await response.json();
-        if (!data) {
-            console.warn('⚠️ [Build] لا توجد بيانات في Firebase، سيتم المتابعة بدون snapshot.');
-            return [];
-        }
-        
-        // تصفية الألعاب: تجاهل اللعبة الممنوعة (ban_01) وتجاهل أي لعبة بدون downloadUrl
+        if (!data) { console.warn('⚠️ [Build] قاعدة البيانات فارغة.'); return []; }
+
         const games = Object.entries(data)
-            .filter(([key, game]) => {
-                if (key === 'ban_01') return false;                 // مستبعدة
-                if (!game.downloadUrl || game.downloadUrl.trim() === '') return false;
-                return true;
-            })
+            .filter(([key, game]) =>
+                !BANNED_IDS.includes(key) &&           // تخطي المحظورة
+                game.downloadUrl &&
+                game.downloadUrl.trim() !== ''
+            )
             .map(([key, game]) => ({
-                id: key,
-                title: game.name || 'بدون اسم',
-                image: game.iconUrl || 'images/icon.png',
-                src: game.downloadUrl,
-                ageRating: game.ageRating || '+3',
-                type: game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
-                description: game.description || '',
+                id:             key,
+                title:          game.name          || 'بدون اسم',
+                image:          game.iconUrl        || 'images/icon.png',
+                src:            game.downloadUrl,
+                type:           game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
+                ageRating:      (game.ageRating     || '+3').replace(/[VB]/g, ''), // تنظيف +16V → +16
+                description:    game.description    || '',
                 description_en: game.description_en || '',
-                categories: game.categories || [],
-                controls: game.controls || null      // <-- إضافة الـ controls
+                categories:     game.categories     || [],
+                controls:       extractControlKeys(game.controls)  // مفاتيح فقط
             }));
-        
-        console.log(`✅ [Build] تم جلب ${games.length} لعبة من Firebase.`);
+
+        console.log(`✅ [Build] تم جلب ${games.length} لعبة.`);
         return games;
-        
-    } catch (error) {
-        console.error('❌ [Build] خطأ في الاتصال بـ Firebase:', error.message);
-        console.warn('⚠️ [Build] سيتم المتابعة بدون snapshot — الموقع سيعمل لكن بدون SEO مسبق.');
+
+    } catch (err) {
+        console.error('❌ [Build] خطأ:', err.message);
         return [];
     }
 }
 
-// ===== توليد HTML لبطاقات الألعاب =====
+/* ── توليد HTML بطاقات الألعاب للـ SEO ── */
 function generateGamesGridHTML(games) {
     if (!games.length) return '';
-    
-    const ageColors = {
-        '+3': '#2ecc71',
-        '+7': '#3498db',
-        '+12': '#f39c12',
-        '+16': '#e67e22',
-        '+18': '#e74c3c'
-    };
-    
-    const cards = games.map(game => {
-        const color = ageColors[game.ageRating] || '#2ecc71';
-        const desc = game.description || game.description_en || '';
-        const shortDesc = desc.length > 80 ? desc.substring(0, 77) + '...' : desc;
-        
-        return `<article class="game-card" data-id="${escapeHtml(game.id)}" data-src="${escapeHtml(game.src)}" data-type="${escapeHtml(game.type)}">
-  <div class="card-img-wrapper">
-    <img src="${escapeHtml(game.image)}" alt="${escapeHtml(game.title)}" class="card-img" loading="lazy" onerror="this.src='images/icon.png'">
-    <span class="age-badge" style="background:${color}">${escapeHtml(game.ageRating)}</span>
-  </div>
-  <div class="card-body">
-    <h3 class="card-title">${escapeHtml(game.title)}</h3>
-    ${shortDesc ? `<p class="card-desc">${escapeHtml(shortDesc)}</p>` : ''}
-    <button class="pixel-btn play-btn" data-id="${escapeHtml(game.id)}" aria-label="العب ${escapeHtml(game.title)}">
-      <i class="fa-solid fa-play"></i> العب الآن
-    </button>
-  </div>
+    const ageColors = { '+3':'#2ecc71','+7':'#3498db','+12':'#f39c12','+16':'#e67e22','+18':'#e74c3c' };
+
+    return games.map(g => {
+        const color    = ageColors[g.ageRating] || '#2ecc71';
+        const desc     = g.description || g.description_en || '';
+        const shortDesc = desc.length > 100 ? desc.substring(0, 97) + '...' : desc;
+        return `<article class="game-card" data-id="${esc(g.id)}">
+  <img src="${esc(g.image)}" alt="${esc(g.title)}" class="card-img" loading="lazy" onerror="this.src='images/icon.png'">
+  <span class="age-badge" style="background:${color}">${esc(g.ageRating)}</span>
+  <div class="game-title">${esc(g.title)}</div>
+  ${shortDesc ? `<p class="card-desc" style="display:none">${esc(shortDesc)}</p>` : ''}
 </article>`;
     }).join('\n');
-    
-    return cards;
 }
 
-// ===== توليد Schema JSON-LD للـ SEO =====
+/* ── Schema JSON-LD ── */
 function generateSchemaLD(games) {
-    const schema = {
+    return JSON.stringify({
         "@context": "https://schema.org",
         "@type": "ItemList",
         "name": "ألعاب Flash الكلاسيكية - NostGames",
-        "description": "أفضل ألعاب Flash الكلاسيكية للأندرويد مجاناً",
         "url": "https://nostagames.vercel.app/",
         "numberOfItems": games.length,
-        "itemListElement": games.map((game, index) => ({
-            "@type": "ListItem",
-            "position": index + 1,
+        "itemListElement": games.map((g, i) => ({
+            "@type": "ListItem", "position": i + 1,
             "item": {
                 "@type": "VideoGame",
-                "name": game.title,
-                "description": game.description || game.description_en || `العب ${game.title} مجاناً`,
-                "image": game.image,
-                "contentRating": game.ageRating,
-                "genre": game.categories.join(', ') || 'Arcade',
-                "gamePlatform": ["Web Browser", "Android"],
-                "offers": {
-                    "@type": "Offer",
-                    "price": "0",
-                    "priceCurrency": "USD",
-                    "availability": "https://schema.org/InStock"
-                },
-                "url": `https://nostagames.vercel.app/#game=${game.id}`
+                "name": g.title,
+                "description": g.description || g.description_en || '',
+                "image": g.image,
+                "contentRating": g.ageRating,
+                "genre": (g.categories || []).join(', ') || 'Arcade',
+                "gamePlatform": ["Web Browser","Android"],
+                "offers": { "@type":"Offer","price":"0","priceCurrency":"USD" },
+                "url": `https://nostagames.vercel.app/#game=${g.id}`
             }
         }))
-    };
-    
-    return JSON.stringify(schema, null, 2);
+    }, null, 2);
 }
 
-// ===== توليد النص المخفي للـ SEO =====
-function generateSeoHiddenText(games) {
-    const items = games.map(game => {
-        const desc = game.description || game.description_en || '';
-        return `<h2>${escapeHtml(game.title)}</h2><p>${escapeHtml(desc)}</p>`;
-    }).join('\n');
-    
-    return `<div style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;" aria-hidden="true" id="seo-hidden-content">
-${items}
-</div>`;
+/* ── نص مخفي SEO ── */
+function generateSeoHidden(games) {
+    const items = games.map(g =>
+        `<article><h2>${esc(g.title)}</h2><p>${esc(g.description)}</p><p>${esc(g.description_en)}</p></article>`
+    ).join('\n');
+    return `<div id="seo-hidden-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;">\n${items}\n</div>`;
 }
 
-// ===== مساعد: Escape HTML =====
-function escapeHtml(str) {
+function esc(str) {
     if (!str) return '';
     return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// ===== الوظيفة الرئيسية =====
+/* ── الوظيفة الرئيسية ── */
 async function build() {
-    console.log('🚀 [Build] بدء عملية البناء لـ NostGames...\n');
-    
-    // 1. قراءة index.html الأصلي
-    let html = fs.readFileSync(INDEX_PATH, 'utf8');
-    
-    // 2. جلب الألعاب من Firebase
+    console.log('\n🚀 [Build] NostGames — بدء البناء...\n');
+
+    let html   = fs.readFileSync(INDEX_PATH, 'utf8');
     const games = await fetchGamesFromFirebase();
-    
-    // 3. تجهيز window.gamesDatabase كـ JSON للحقن في HTML
-    const gamesJson = JSON.stringify(games);
-    
-    // 4. توليد المكونات
-    const gridHTML = generateGamesGridHTML(games);
-    const schemaLD = generateSchemaLD(games);
-    const seoHidden = generateSeoHiddenText(games);
-    
-    // ===== حقن window.gamesDatabase =====
+
+    // ① حقن window.gamesDatabase (يحتوي controls كـ keys فقط)
     const dbScript = `<script id="server-games-db">
-/* ⚡ Static Snapshot — injected at build time by build.js */
-window.gamesDatabase = ${gamesJson};
+/* ⚡ Static Snapshot — injected at build time */
+window.gamesDatabase   = ${JSON.stringify(games)};
 window.__serverSnapshot = true;
-window.__snapshotCount = ${games.length};
-console.log('[NostGames] Server snapshot loaded: ${games.length} games');
+console.log('[NostGames] snapshot: ${games.length} games');
 </script>`;
 
-    // ===== حقن Schema JSON-LD المحدث =====
+    // ② Schema JSON-LD
     const schemaScript = `<script type="application/ld+json" id="server-games-schema">
-${schemaLD}
+${generateSchemaLD(games)}
 </script>`;
 
-    // ===== حقن Grid الأولي =====
-    const gridInjected = `<div id="games-grid" class="games-grid">
-${gridHTML}
-<!-- ⚡ Pre-rendered at build time: ${new Date().toISOString()} | ${games.length} games -->
+    // ③ Grid HTML
+    const gridBlock = `<div id="games-grid" class="games-grid">
+${generateGamesGridHTML(games)}
+<!-- ⚡ build time: ${new Date().toISOString()} | ${games.length} games -->
 </div>`;
 
-    // ===== تطبيق الحقن على index.html =====
-
-    // أ) إزالة كود fetch القديم من الـ <head>
-    html = html.replace(
-        /<!-- جلب مسبق من Firebase لجوجل \(SEO فوري\) -->[\s\S]*?<\/script>/,
-        '<!-- ✅ Firebase SEO fetch replaced by build.js static injection -->'
-    );
-
-    // ب) تحديث الـ keywords
-    html = html.replace(
-        /<meta name="keywords"[^>]*>/,
-        `<meta name="keywords" content="ألعاب فلاش, العاب فلاش قديمة, العاب فلاش للاندرويد, محاكي فلاش للموبايل, flash games android, retro flash games, nostagames, fireboy watergirl, papa's games, hobo game, jacksmith, cactus mccoy">`
-    );
-
-    // ج) حقن window.gamesDatabase قبل </head>
+    // ── تطبيق الحقن ──
     html = html.replace('</head>', `${dbScript}\n${schemaScript}\n</head>`);
 
-    // د) استبدال games-grid الفارغ بالـ Grid المملوء
+    // استبدال games-grid الفارغ أو الممتلئ القديم
     html = html.replace(
-        /<div id="games-grid" class="games-grid"><\/div>/,
-        gridInjected
+        /<div id="games-grid" class="games-grid">[\s\S]*?<\/div>/,
+        gridBlock
     );
 
-    // هـ) حقن النص المخفي للـ SEO قبل </body>
-    html = html.replace('</body>', `${seoHidden}\n</body>`);
+    html = html.replace('</body>', `${generateSeoHidden(games)}\n</body>`);
 
-    // 5. كتابة index.html المحدث
     fs.writeFileSync(INDEX_PATH, html, 'utf8');
-    
-    console.log('\n✅ [Build] اكتمل البناء بنجاح!');
-    console.log(`   📦 الألعاب المحقونة: ${games.length}`);
-    console.log(`   📄 index.html تم تحديثه`);
-    console.log(`   🔍 Schema JSON-LD تم حقنه`);
-    console.log(`   🌐 النص المخفي للـ SEO تم حقنه\n`);
+
+    console.log(`\n✅ [Build] اكتمل!`);
+    console.log(`   📦 الألعاب: ${games.length}`);
+    console.log(`   🎮 الألعاب بها أزرار: ${games.filter(g=>g.controls).length}`);
+    console.log(`   🔍 Schema + SEO: تم حقنهم\n`);
 }
 
-// تشغيل عملية البناء
-build().catch(err => {
-    console.error('💥 [Build] فشل البناء:', err);
-    process.exit(0);
-});
+build().catch(err => { console.error('💥 [Build]', err); process.exit(0); });

@@ -1265,3 +1265,81 @@ body {
     .panel-title { font-size: 0.65rem; }
     .panel-play-btn { font-size: 0.6rem; padding: 12px; }
 }
+
+
+/* =============================================
+   SMART CONTROLS v2 — أزرار التحكم اللمسية
+   ============================================= */
+
+/* حصر شاشة اللعبة — منع تمدد Flash */
+#game-canvas {
+    overflow: hidden !important;
+    position: relative !important;
+    contain: strict;
+}
+#game-canvas ruffle-player,
+#game-canvas iframe {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    border: none;
+}
+#game-player {
+    overflow: hidden !important;
+}
+
+/* العصا التناظرية */
+.ctrl-joystick-base {
+    position: absolute;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* زر الأكشن */
+.ctrl-action-btn {
+    position: absolute;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* وضع التحرير — إطار متقطع أخضر */
+.ctrl-edit-mode {
+    outline: 2px dashed rgba(0, 255, 0, 0.7) !important;
+    outline-offset: 3px !important;
+    cursor: grab !important;
+}
+.ctrl-edit-mode:active {
+    cursor: grabbing !important;
+}
+
+/* شريط أدوات التحكم */
+#controls-toolbar button:hover {
+    opacity: 0.85;
+}
+#controls-toolbar button:active {
+    transform: scale(0.92);
+}
+
+/* على الهاتف: تأكيد عدم انتقاء النص عند اللمس */
+@media (pointer: coarse) {
+    .ctrl-joystick-base,
+    .ctrl-action-btn {
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+    }
+    #controls-toolbar {
+        /* شريط الأدوات أصغر قليلاً على الموبايل */
+        padding: 4px 10px !important;
+        gap: 4px !important;
+    }
+    #controls-toolbar button {
+        font-size: 17px !important;
+        padding: 3px 5px !important;
+    }
+}
