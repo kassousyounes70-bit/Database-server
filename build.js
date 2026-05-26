@@ -10,19 +10,6 @@ const path = require('path');
 const FIREBASE_URL = 'https://n-core-nostagames-default-rtdb.firebaseio.com/games.json';
 const INDEX_PATH = path.join(__dirname, 'index.html');
 
-// ===== دالة تجريد أزرار التحكم =====
-function cleanControls(rawControls) {
-    if (!rawControls) return null;
-    const cleaned = { p1: {}, wasd: !!rawControls.wasd };
-    if (rawControls.p1) {
-        for (const key in rawControls.p1) {
-            // نحتفظ باسم الزر فقط دون الإحداثيات أو الأحجام أو الصور
-            cleaned.p1[key] = {}; 
-        }
-    }
-    return cleaned;
-}
-
 // ===== الاتصال بـ Firebase =====
 async function fetchGamesFromFirebase() {
     console.log('🔥 [Build] جاري الاتصال بـ Firebase...');
@@ -37,9 +24,9 @@ async function fetchGamesFromFirebase() {
             return [];
         }
         
-        // تصفية الألعاب الصالحة وتجاوز اللعبة المحجوبة
+        // تصفية الألعاب الصالحة فقط (التي لها downloadUrl)
         const games = Object.entries(data)
-            .filter(([key, game]) => key !== 'ban_01' && game.downloadUrl && game.downloadUrl.trim() !== '')
+            .filter(([key, game]) => game.downloadUrl && game.downloadUrl.trim() !== '')
             .map(([key, game]) => ({
                 id: key,
                 title: game.name || 'بدون اسم',
@@ -49,8 +36,7 @@ async function fetchGamesFromFirebase() {
                 type: game.downloadUrl.toLowerCase().endsWith('.swf') ? 'swf' : 'iframe',
                 description: game.description || '',
                 description_en: game.description_en || '',
-                categories: game.categories || [],
-                controls: cleanControls(game.controls) // إضافة بيانات التحكم المجردة
+                categories: game.categories || []
             }));
         
         console.log(`✅ [Build] تم جلب ${games.length} لعبة من Firebase.`);
@@ -190,27 +176,33 @@ ${schemaLD}
     // ===== حقن Grid الأولي =====
     const gridInjected = `<div id="games-grid" class="games-grid">
 ${gridHTML}
+<!-- ⚡ Pre-rendered at build time: ${new Date().toISOString()} | ${games.length} games -->
 </div>`;
 
     // ===== تطبيق الحقن على index.html =====
 
+    // أ) إزالة كود fetch القديم من الـ <head> (السكريبت الذي يجلب من Firebase في الـ head)
     html = html.replace(
-        /[\s\S]*?<\/script>/,
-        ''
+        /<!-- جلب مسبق من Firebase لجوجل \(SEO فوري\) -->[\s\S]*?<\/script>/,
+        '<!-- ✅ Firebase SEO fetch replaced by build.js static injection -->'
     );
 
+    // ب) إزالة الـ keywords العشوائية واستبدالها بـ keywords نظيفة
     html = html.replace(
         /<meta name="keywords"[^>]*>/,
         `<meta name="keywords" content="ألعاب فلاش, العاب فلاش قديمة, العاب فلاش للاندرويد, محاكي فلاش للموبايل, flash games android, retro flash games, nostagames, fireboy watergirl, papa's games, hobo game, jacksmith, cactus mccoy">`
     );
 
+    // ج) حقن window.gamesDatabase قبل </head>
     html = html.replace('</head>', `${dbScript}\n${schemaScript}\n</head>`);
 
+    // د) استبدال games-grid الفارغ بالـ Grid المملوء
     html = html.replace(
         /<div id="games-grid" class="games-grid"><\/div>/,
         gridInjected
     );
 
+    // هـ) حقن النص المخفي للـ SEO قبل </body>
     html = html.replace('</body>', `${seoHidden}\n</body>`);
 
     // 5. كتابة index.html المحدث
@@ -226,5 +218,6 @@ ${gridHTML}
 // تشغيل عملية البناء
 build().catch(err => {
     console.error('💥 [Build] فشل البناء:', err);
+    // لا نوقف عملية النشر - الموقع سيعمل بدون snapshot
     process.exit(0);
 });
