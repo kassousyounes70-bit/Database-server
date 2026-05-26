@@ -1,5 +1,6 @@
 /* =============================================
-   NOSTAGAMES - MAIN ENGINE v9.3 (Editable & Flip Controls, Vector Icons)
+   NOSTAGAMES - MAIN ENGINE v9.1 (Static Controls + Smart Layout)
+   المعمارية الهجينة: Server Snapshot + Firebase Live Sync
    ============================================= */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -25,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initAdBlockDetection();
     initAppBanner();
     initCounter();
+
     if (typeof NPCSystem !== 'undefined') NPCSystem.init();
     initScrollReveal();
     initDownloadBtns();
@@ -62,7 +64,7 @@ async function silentSyncWithFirebase() {
         let newGamesCount = 0;
 
         for (const key in data) {
-            if (key === 'ban_01') continue;
+            if (key === 'ban_01') continue;  // تجاهل اللعبة الممنوعة
             const game = data[key];
             if (!game.downloadUrl || game.downloadUrl.trim() === "") continue;
             if (existingIds.has(key)) continue;
@@ -453,128 +455,38 @@ function triggerRuffleKeyEvent(type, keyName) {
 }
 
 /* =============================================
-   SMART CONTROLS (قابلة للتعديل والقلب - مع toolbar بجانب زر الإغلاق)
+   SMART CONTROLS (ثابت: عصا يسار، أزرار يمين)
    ============================================= */
-let editModeActive = false;
-let currentGameId = null;
-let currentDragElement = null;
-let originalLayout = null;
-
 function renderSmartControls(gameId, controlsData, container) {
     if (!controlsData) return;
-    currentGameId = gameId;
     const p1 = controlsData.p1 || {};
     const useWasd = controlsData.wasd === true;
     const hasJoystick = p1.hasOwnProperty('JOYSTICK') || useWasd;
     const actionKeys = Object.keys(p1).filter(k => k !== 'JOYSTICK');
 
-    // إزالة أي واجهة سابقة
-    const existingWrapper = document.getElementById('smart-controls-wrapper');
-    if (existingWrapper) existingWrapper.remove();
-
-    // ننشئ حاوية خارجية للتحكمات + شريط الأدوات
     const wrapper = document.createElement('div');
     wrapper.id = 'smart-controls-wrapper';
-    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:180px;pointer-events:none;z-index:10000;direction:ltr;';
+    wrapper.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:160px;pointer-events:none;z-index:10000;direction:ltr;';
 
-    // ========= شريط الأدوات العلوي (بجانب زر الإغلاق) =========
-    // نبحث عن زر الإغلاق في نافذة اللعبة المفتوحة (في #game-player)
-    // سنقوم بإضافة شريط الأدوات داخل نفس الحاوية التي تحتوي زر الإغلاق
-    // لكن لضمان عدم التأثير على تصميم اللعبة، سنضيف toolbar أعلى الشاشة بجانب زر الإغلاق.
-    // طريقة آمنة: نضيف div جديد ونضعه بجانب زر الإغلاق باستخدام CSS absolute.
-    const toolbar = document.createElement('div');
-    toolbar.id = 'controls-toolbar';
-    toolbar.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(0,0,0,0.6);padding:6px 12px;border-radius:40px;backdrop-filter:blur(8px);pointer-events:auto;z-index:10001;';
-    
-    // زر القلم (تعديل)
-    const editBtn = document.createElement('button');
-    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-    editBtn.title = 'تعديل الأزرار';
-    editBtn.style.cssText = 'background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
-    editBtn.onmouseover = () => editBtn.style.backgroundColor = 'rgba(255,255,255,0.2)';
-    editBtn.onmouseout = () => editBtn.style.backgroundColor = 'transparent';
-    
-    // زر القلب (Flip)
-    const flipBtn = document.createElement('button');
-    flipBtn.innerHTML = '<i class="fa-solid fa-arrows-spin"></i>';
-    flipBtn.title = 'قلب الاتجاهات (يسار/يمين)';
-    flipBtn.style.cssText = editBtn.style.cssText;
-    flipBtn.onmouseover = editBtn.onmouseover;
-    flipBtn.onmouseout = editBtn.onmouseout;
-    
-    // أزرار وضع التعديل
-    const cancelBtn = document.createElement('button');
-    cancelBtn.innerHTML = '<i class="fa-solid fa-ban"></i>';
-    cancelBtn.title = 'إلغاء التعديلات';
-    cancelBtn.style.cssText = editBtn.style.cssText;
-    cancelBtn.style.display = 'none';
-    const saveBtn = document.createElement('button');
-    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
-    saveBtn.title = 'حفظ التخطيط';
-    saveBtn.style.cssText = editBtn.style.cssText;
-    saveBtn.style.display = 'none';
-    const sizePlus = document.createElement('button');
-    sizePlus.innerHTML = '<i class="fa-solid fa-plus"></i>';
-    sizePlus.title = 'تكبير الزر المحدد';
-    sizePlus.style.cssText = editBtn.style.cssText;
-    sizePlus.style.display = 'none';
-    const sizeMinus = document.createElement('button');
-    sizeMinus.innerHTML = '<i class="fa-solid fa-minus"></i>';
-    sizeMinus.title = 'تصغير الزر المحدد';
-    sizeMinus.style.cssText = editBtn.style.cssText;
-    sizeMinus.style.display = 'none';
-    
-    toolbar.append(editBtn, flipBtn, cancelBtn, saveBtn, sizePlus, sizeMinus);
-    wrapper.appendChild(toolbar);
-    
-    // الآن نضيف زر الإغلاق الأصلي إلى نفس المستوى (بجانب toolbar) ولكن في أقصى اليمين
-    // نبحث عن زر الإغلاق الموجود في #game-player (الزر الأحمر)
-    const closeBtn = document.getElementById('close-btn');
-    if (closeBtn) {
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '10px';
-        closeBtn.style.right = '10px';
-        closeBtn.style.zIndex = '10002';
-        closeBtn.style.backgroundColor = '#e74c3c';
-        closeBtn.style.border = 'none';
-        closeBtn.style.borderRadius = '50%';
-        closeBtn.style.width = '40px';
-        closeBtn.style.height = '40px';
-        closeBtn.style.fontSize = '20px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.display = 'flex';
-        closeBtn.style.alignItems = 'center';
-        closeBtn.style.justifyContent = 'center';
-        closeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        // نتأكد من أنه يظهر فوق كل شيء
-        if (closeBtn.parentNode) closeBtn.parentNode.style.position = 'relative';
-    }
-    
-    // مناطق العصا والأزرار
     const leftArea = document.createElement('div');
-    leftArea.className = 'controls-left';
     leftArea.style.cssText = 'position:absolute;bottom:15px;left:15px;pointer-events:auto;';
     const rightArea = document.createElement('div');
-    rightArea.className = 'controls-right';
     rightArea.style.cssText = 'position:absolute;bottom:15px;right:15px;display:flex;gap:15px;pointer-events:auto;';
-    
-    let joystickElement = null;
-    let actionButtons = [];
-    
+
+    // عصا التحكم (يسار)
     if (hasJoystick) {
-        joystickElement = createAnalogStick(useWasd);
-        joystickElement.classList.add('ctrl-joystick');
-        joystickElement.style.width = '120px';
-        joystickElement.style.height = '120px';
-        joystickElement.style.borderRadius = '50%';
-        joystickElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        joystickElement.style.border = '2px solid rgba(255,255,255,0.6)';
-        leftArea.appendChild(joystickElement);
+        const joy = createAnalogStick(useWasd);
+        joy.style.width = '120px';
+        joy.style.height = '120px';
+        joy.style.borderRadius = '50%';
+        joy.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        joy.style.border = '2px solid rgba(255,255,255,0.6)';
+        leftArea.appendChild(joy);
     }
-    
+
+    // أزرار الحركة (يمين)
     actionKeys.forEach(key => {
         const btn = createActionButton(key);
-        btn.classList.add('ctrl-action-btn');
         btn.style.width = '70px';
         btn.style.height = '70px';
         btn.style.borderRadius = '50%';
@@ -586,216 +498,13 @@ function renderSmartControls(gameId, controlsData, container) {
         btn.style.display = 'flex';
         btn.style.alignItems = 'center';
         btn.style.justifyContent = 'center';
+        btn.style.touchAction = 'none';
         rightArea.appendChild(btn);
-        actionButtons.push(btn);
     });
-    
+
     wrapper.appendChild(leftArea);
     wrapper.appendChild(rightArea);
     container.appendChild(wrapper);
-    
-    // تحميل التخطيط المحفوظ والقلب
-    const savedLayout = localStorage.getItem(`nosta_layout_${gameId}`);
-    const savedFlip = localStorage.getItem(`nosta_flip_${gameId}`);
-    let flipped = (savedFlip === 'true');
-    if (flipped) {
-        leftArea.style.left = 'auto';
-        leftArea.style.right = '15px';
-        rightArea.style.right = 'auto';
-        rightArea.style.left = '15px';
-    } else {
-        leftArea.style.left = '15px';
-        leftArea.style.right = 'auto';
-        rightArea.style.right = '15px';
-        rightArea.style.left = 'auto';
-    }
-    
-    if (savedLayout) {
-        try {
-            const layout = JSON.parse(savedLayout);
-            if (layout.joystick && joystickElement) {
-                joystickElement.style.left = layout.joystick.left;
-                joystickElement.style.top = layout.joystick.top;
-                joystickElement.style.width = layout.joystick.width;
-                joystickElement.style.height = layout.joystick.height;
-            }
-            actionButtons.forEach((btn, idx) => {
-                const key = actionKeys[idx];
-                if (layout[key]) {
-                    btn.style.left = layout[key].left;
-                    btn.style.top = layout[key].top;
-                    btn.style.width = layout[key].width;
-                    btn.style.height = layout[key].height;
-                }
-            });
-        } catch(e) {}
-    }
-    
-    // وظائف وضع التعديل
-    let editActive = false;
-    let selectedElement = null;
-    
-    function enableEditMode() {
-        editActive = true;
-        editBtn.style.display = 'none';
-        cancelBtn.style.display = 'flex';
-        saveBtn.style.display = 'flex';
-        sizePlus.style.display = 'flex';
-        sizeMinus.style.display = 'flex';
-        wrapper.style.backgroundColor = 'rgba(0,0,0,0.3)';
-        const allControls = [joystickElement, ...actionButtons].filter(el => el);
-        allControls.forEach(el => {
-            el.style.border = '3px dashed #ff0';
-            el.style.cursor = 'move';
-            makeDraggableAndResizable(el, sizePlus, sizeMinus);
-        });
-    }
-    
-    function disableEditMode(cancel = false) {
-        editActive = false;
-        editBtn.style.display = 'flex';
-        cancelBtn.style.display = 'none';
-        saveBtn.style.display = 'none';
-        sizePlus.style.display = 'none';
-        sizeMinus.style.display = 'none';
-        wrapper.style.backgroundColor = 'transparent';
-        const allControls = [joystickElement, ...actionButtons].filter(el => el);
-        allControls.forEach(el => {
-            el.style.border = '';
-            el.style.cursor = '';
-            removeDraggable(el);
-        });
-        if (cancel && originalLayout) {
-            const defLayout = localStorage.getItem(`nosta_layout_${gameId}`);
-            if (defLayout) {
-                const layout = JSON.parse(defLayout);
-                if (layout.joystick && joystickElement) {
-                    joystickElement.style.left = layout.joystick.left;
-                    joystickElement.style.top = layout.joystick.top;
-                    joystickElement.style.width = layout.joystick.width;
-                    joystickElement.style.height = layout.joystick.height;
-                }
-                actionButtons.forEach((btn, idx) => {
-                    const key = actionKeys[idx];
-                    if (layout[key]) {
-                        btn.style.left = layout[key].left;
-                        btn.style.top = layout[key].top;
-                        btn.style.width = layout[key].width;
-                        btn.style.height = layout[key].height;
-                    }
-                });
-            }
-        }
-        selectedElement = null;
-    }
-    
-    function saveLayout() {
-        const layout = {};
-        if (joystickElement) {
-            layout.joystick = {
-                left: joystickElement.style.left,
-                top: joystickElement.style.top,
-                width: joystickElement.style.width,
-                height: joystickElement.style.height
-            };
-        }
-        actionButtons.forEach((btn, idx) => {
-            const key = actionKeys[idx];
-            layout[key] = {
-                left: btn.style.left,
-                top: btn.style.top,
-                width: btn.style.width,
-                height: btn.style.height
-            };
-        });
-        localStorage.setItem(`nosta_layout_${gameId}`, JSON.stringify(layout));
-        disableEditMode(false);
-    }
-    
-    function flipControls() {
-        flipped = !flipped;
-        localStorage.setItem(`nosta_flip_${gameId}`, flipped);
-        if (flipped) {
-            leftArea.style.left = 'auto';
-            leftArea.style.right = '15px';
-            rightArea.style.right = 'auto';
-            rightArea.style.left = '15px';
-        } else {
-            leftArea.style.left = '15px';
-            leftArea.style.right = 'auto';
-            rightArea.style.right = '15px';
-            rightArea.style.left = 'auto';
-        }
-    }
-    
-    editBtn.onclick = () => {
-        originalLayout = localStorage.getItem(`nosta_layout_${gameId}`);
-        enableEditMode();
-    };
-    cancelBtn.onclick = () => disableEditMode(true);
-    saveBtn.onclick = saveLayout;
-    flipBtn.onclick = flipControls;
-    
-    function makeDraggableAndResizable(el, plusBtn, minusBtn) {
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-        el.addEventListener('touchstart', onDragStart, { passive: false });
-        el.addEventListener('mousedown', onDragStart);
-        function onDragStart(e) {
-            if (!editActive) return;
-            e.preventDefault();
-            selectedElement = el;
-            isDragging = true;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            startX = clientX;
-            startY = clientY;
-            startLeft = parseFloat(el.style.left) || 0;
-            startTop = parseFloat(el.style.top) || 0;
-            window.addEventListener('touchmove', onDragMove);
-            window.addEventListener('mousemove', onDragMove);
-            window.addEventListener('touchend', onDragEnd);
-            window.addEventListener('mouseup', onDragEnd);
-        }
-        function onDragMove(e) {
-            if (!isDragging) return;
-            e.preventDefault();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let dx = clientX - startX;
-            let dy = clientY - startY;
-            let newLeft = startLeft + dx;
-            let newTop = startTop + dy;
-            el.style.left = Math.min(Math.max(0, newLeft), window.innerWidth - el.offsetWidth) + 'px';
-            el.style.top = Math.min(Math.max(0, newTop), window.innerHeight - el.offsetHeight) + 'px';
-        }
-        function onDragEnd() {
-            isDragging = false;
-            window.removeEventListener('touchmove', onDragMove);
-            window.removeEventListener('mousemove', onDragMove);
-            window.removeEventListener('touchend', onDragEnd);
-            window.removeEventListener('mouseup', onDragEnd);
-        }
-        const resize = (delta) => {
-            if (!selectedElement || !editActive) return;
-            let w = parseInt(selectedElement.style.width);
-            let h = parseInt(selectedElement.style.height);
-            if (isNaN(w)) w = 70;
-            if (isNaN(h)) h = 70;
-            w += delta;
-            h += delta;
-            if (w < 40) w = 40;
-            if (h < 40) h = 40;
-            selectedElement.style.width = w + 'px';
-            selectedElement.style.height = h + 'px';
-        };
-        plusBtn.onclick = () => resize(10);
-        minusBtn.onclick = () => resize(-10);
-    }
-    function removeDraggable(el) {
-        el.removeEventListener('touchstart', null);
-        el.removeEventListener('mousedown', null);
-    }
 }
 
 function createAnalogStick(useWasd) {
@@ -812,7 +521,7 @@ function createAnalogStick(useWasd) {
     knob.style.left = '30%';
     knob.style.transition = 'transform 0.05s linear';
     base.appendChild(knob);
-    
+
     let activeKeys = [];
     const mapping = useWasd ? { U: 'W', D: 'S', L: 'A', R: 'D' } : { U: 'UP', D: 'DOWN', L: 'LEFT', R: 'RIGHT' };
     const updateKeys = (newKeys) => {
@@ -820,9 +529,8 @@ function createAnalogStick(useWasd) {
         newKeys.forEach(k => { if (!activeKeys.includes(k)) triggerRuffleKeyEvent('keydown', k); });
         activeKeys = newKeys;
     };
-    
+
     function handleMove(e) {
-        if (editModeActive) return;
         e.preventDefault();
         const rect = base.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
@@ -855,9 +563,6 @@ function createAnalogStick(useWasd) {
     base.addEventListener('touchmove', handleMove, { passive: false });
     base.addEventListener('touchend', reset);
     base.addEventListener('touchcancel', reset);
-    base.addEventListener('mousedown', handleMove);
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', reset);
     return base;
 }
 
@@ -876,7 +581,7 @@ function createActionButton(keyName) {
 }
 
 /* =============================================
-   GAME PLAYER (مع تكبير الشاشة)
+   GAME PLAYER
    ============================================= */
 function openGame(game) {
     const player = document.getElementById('game-player');
@@ -885,34 +590,16 @@ function openGame(game) {
     const titleEl = document.getElementById('playing-title');
     const closeBtn = document.getElementById('close-btn');
     if (!player || !canvas || !overlay || !titleEl || !closeBtn) return;
-    
+
     titleEl.textContent = `▶ ${game.title}`;
     canvas.innerHTML = '';
     overlay.style.display = 'flex';
     player.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    
-    // تكبير الشاشة مع ترك مساحة جانبية للإعلانات (يمكن تعديل القيم في CSS)
-    player.style.position = 'fixed';
-    player.style.top = '0';
-    player.style.left = '0';
-    player.style.width = '100vw';
-    player.style.height = '100vh';
-    player.style.zIndex = '9999';
-    player.style.backgroundColor = '#000';
-    const gameContainer = document.querySelector('.game-container');
-    if (gameContainer) {
-        gameContainer.style.width = 'calc(100% - 20px)';  // مساحة جانبية 10px لكل جهة
-        gameContainer.style.height = 'calc(100% - 20px)';
-        gameContainer.style.margin = '10px auto';
-        gameContainer.style.padding = '0';
-    }
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    
+
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     let launched = false;
-    
+
     const launchGame = () => {
         if (launched) return;
         launched = true;
@@ -944,13 +631,12 @@ function openGame(game) {
             iframe.allowFullscreen = true;
             iframe.style.width = '100%';
             iframe.style.height = '100%';
-            iframe.style.border = 'none';
             canvas.appendChild(iframe);
         }
     };
-    
+
     overlay.onclick = () => showPixelLoadingBar(launchGame);
-    
+
     closeBtn.onclick = () => {
         player.classList.add('hidden');
         canvas.innerHTML = '';
@@ -960,20 +646,11 @@ function openGame(game) {
         document.getElementById('smart-controls-wrapper')?.remove();
         try { screen.orientation?.unlock(); } catch(e) {}
         if (document.fullscreenElement) document.exitFullscreen?.();
-        // إعادة تعيين حجم اللاعب
-        player.style.position = '';
-        player.style.width = '';
-        player.style.height = '';
-        if (gameContainer) {
-            gameContainer.style.width = '';
-            gameContainer.style.height = '';
-            gameContainer.style.margin = '';
-        }
     };
 }
 
 /* =============================================
-   UI HELPERS (متبقي كما هو)
+   UI HELPERS
    ============================================= */
 function initCarousel() {
     const grid = document.getElementById('games-grid');
@@ -1052,7 +729,7 @@ function injectSEOSchema() {
     if (window.__serverSnapshot && document.getElementById('server-games-schema')) return;
     document.getElementById('games-schema')?.remove();
     document.getElementById('seo-text-block')?.remove();
-    
+
     const schemaData = {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -1079,7 +756,7 @@ function injectSEOSchema() {
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify(schemaData);
     document.head.appendChild(script);
-    
+
     const seoBlock = document.createElement('div');
     seoBlock.id = 'seo-text-block';
     seoBlock.setAttribute('aria-hidden', 'true');
@@ -1094,5 +771,6 @@ function injectSEOSchema() {
     document.body.appendChild(seoBlock);
 }
 
+// تصدير للاستخدام الخارجي
 window.openGame = openGame;
 window.renderGames = renderGames;
