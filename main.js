@@ -300,9 +300,6 @@ function showGamePanel(game) {
 }
 
 /* =============================================
-   ADBLOCK DETECTION (محمي من البوتات)
-   ============================================= */
-/* =============================================
    ADBLOCK — يعمل فقط عند الضغط على أزرار حساسة
    عناكب جوجل تتصفح بحرية كاملة ✅
    ============================================= */
@@ -360,6 +357,8 @@ function initDownloadBtns() {
         });
     });
 }
+
+function initAppBanner() {
     const banner = document.getElementById('app-banner');
     const closeBtn = document.getElementById('banner-close');
     if (!banner) return;
@@ -999,20 +998,6 @@ function initScrollReveal() {
     document.querySelectorAll('.feature-card,.section-title,.android-section,.reveal').forEach(el => {
         el.classList.add('reveal');
         observer.observe(el);
-    });
-}
-
-function initDownloadBtns() {
-    const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
-    ['download-btn','android-download-btn','banner-download-btn'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (typeof NPCSystem !== 'undefined') NPCSystem.onDownloadClick();
-                window.location.href = APK_URL;
-            });
-        }
     });
 }
 
