@@ -24,7 +24,6 @@ window.gamesDatabase = window.gamesDatabase || [];
 window.secretGames = { games: [] };
 
 document.addEventListener("DOMContentLoaded", () => {
-    initAdBlockDetection();
     initAppBanner();
     initCounter();
 
@@ -289,7 +288,13 @@ function showGamePanel(game) {
     document.addEventListener('keydown', onKey);
     panel.addEventListener('click', e => { if (e.target === panel) { closePanel(); document.removeEventListener('keydown', onKey); } });
     document.getElementById('panel-close-btn').onclick = closePanel;
-    document.getElementById('panel-play-btn').onclick = () => { closePanel(); setTimeout(() => openGame(game), 260); };
+    document.getElementById('panel-play-btn').onclick = () => {
+        // ← التحقق من AdBlock فقط عند الضغط على ابدأ اللعبة
+        showAdBlockWall(() => {
+            closePanel();
+            setTimeout(() => openGame(game), 260);
+        });
+    };
 
     requestAnimationFrame(() => panel.classList.add('panel-visible'));
 }
@@ -297,46 +302,64 @@ function showGamePanel(game) {
 /* =============================================
    ADBLOCK DETECTION (محمي من البوتات)
    ============================================= */
-function initAdBlockDetection() {
-    const wall = document.getElementById('adblock-wall');
-    const continueBtn = document.getElementById('adblock-continue-btn');
-
-    function check1() {
-        const bait = document.getElementById('ab-bait1');
-        if (!bait) return true;
-        return bait.offsetHeight === 0 || bait.offsetWidth === 0 || getComputedStyle(bait).display === 'none';
-    }
-    function check2() {
-        const bait = document.getElementById('ab-bait2');
-        if (!bait) return true;
-        return bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
-    }
-
-    // جدار الإعلانات: يعمل فقط عند التفاعل الفعلي (لا يمنع عناكب البحث)
-    const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
-    setTimeout(() => {
-        if (isBot) return;
-        const detected = check1() || check2();
-        if (detected && wall) {
-            wall.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-    }, 800);
-
-    if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
-            if (check1() || check2()) {
-                const note = document.querySelector('.adblock-note');
-                if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
-            } else {
-                if (wall) wall.classList.add('hidden');
-                document.body.style.overflow = '';
-            }
-        });
-    }
+/* =============================================
+   ADBLOCK — يعمل فقط عند الضغط على أزرار حساسة
+   عناكب جوجل تتصفح بحرية كاملة ✅
+   ============================================= */
+function checkAdBlock() {
+    const b1 = document.getElementById('ab-bait1');
+    const b2 = document.getElementById('ab-bait2');
+    const blocked1 = !b1 || b1.offsetHeight === 0 || b1.offsetWidth === 0 || getComputedStyle(b1).display === 'none';
+    const blocked2 = !b2 || b2.offsetHeight === 0 || getComputedStyle(b2).display === 'none';
+    return blocked1 || blocked2;
 }
 
-function initAppBanner() {
+function showAdBlockWall(onPass) {
+    // بوتات محركات البحث — تمرّ مباشرة بدون جدار
+    const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
+    if (isBot) { onPass(); return; }
+
+    // إذا لا يوجد adblock — تمرّ مباشرة
+    if (!checkAdBlock()) { onPass(); return; }
+
+    // يوجد adblock — أظهر الجدار
+    const wall = document.getElementById('adblock-wall');
+    const continueBtn = document.getElementById('adblock-continue-btn');
+    if (!wall) { onPass(); return; }
+
+    wall.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // زر المتابعة بعد التعطيل
+    const newBtn = continueBtn.cloneNode(true);
+    continueBtn.parentNode.replaceChild(newBtn, continueBtn);
+    newBtn.addEventListener('click', () => {
+        if (checkAdBlock()) {
+            const note = document.querySelector('.adblock-note');
+            if (note) note.innerHTML = '❌ لا يزال مانع الإعلانات مفعّلاً. يرجى تعطيله أولاً.';
+        } else {
+            wall.classList.add('hidden');
+            document.body.style.overflow = '';
+            onPass();
+        }
+    });
+}
+
+function initDownloadBtns() {
+    const APK_URL = 'https://archive.org/download/n-core-nostagames-debug_20260523/N-CORE-NOSTAGAMES-debug.apk';
+    ['download-btn', 'android-download-btn', 'banner-download-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // ← التحقق من AdBlock فقط عند الضغط على التحميل
+            showAdBlockWall(() => {
+                if (typeof NPCSystem !== 'undefined') NPCSystem.onDownloadClick();
+                window.location.href = APK_URL;
+            });
+        });
+    });
+}
     const banner = document.getElementById('app-banner');
     const closeBtn = document.getElementById('banner-close');
     if (!banner) return;
