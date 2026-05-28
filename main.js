@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initShare();
     initSecretCode();
     initBackToTop();
-    initGoogleTranslate();   // ← إضافة Google Translate Toast والإخفاء
+    initGoogleTranslate();
     
     // ── إضافة AdBlock watcher والتفاعل الأول ──
     startAdWatcher();
@@ -626,13 +626,7 @@ function initGoogleTranslate() {
     setTimeout(() => { toast.style.opacity = '0'; }, 4000);
     setTimeout(() => { toast.remove(); }, 4500);
 
-    // إخفاء شريط Google Translate بعد 10 ثوانٍ
-    setTimeout(() => {
-        const el = document.getElementById('google_translate_element');
-        if (el) el.classList.add('gt-hidden');
-        document.querySelectorAll('.goog-te-banner-frame, .skiptranslate')
-            .forEach(el => el.classList.add('gt-hidden'));
-    }, 10000);
+    // إزالة كود الإخفاء القسري لشريط الترجمة من هنا حتى يتمكن الزائر من استخدامه
 }
 
 function showPixelLoadingBar(onComplete) {

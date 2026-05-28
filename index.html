@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="notranslate" translate="no">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,6 @@
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://nostagames.vercel.app/">
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nostagames.vercel.app/">
     <meta property="og:title" content="NostGames - عصر الفلاش الذهبي عاد! 🕹️">
@@ -23,7 +22,6 @@
     <meta name="twitter:description" content="العب 30+ لعبة Flash مجاناً على أندرويد">
     <meta name="twitter:image" content="https://nostagames.vercel.app/images/icon.png">
 
-    <!-- Schema الأساسي للتطبيق - ثابت دائماً -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -39,9 +37,6 @@
     }
     </script>
 
-    <!-- ⚡ BUILD_INJECTION_POINT: server-games-db (injected by build.js) -->
-    <!-- ⚡ BUILD_INJECTION_POINT: server-games-schema (injected by build.js) -->
-
     <link rel="icon" type="image/png" href="images/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,7 +45,6 @@
     <style class="adBanner" id="adStyleBait">.adBanner-check{display:block;height:1px;}</style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8579682743838923" crossorigin="anonymous"></script>
 
-    <!-- Google Translate Widget -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
@@ -65,7 +59,6 @@
 </head>
 <body>
 
-    <!-- Google Translate Element (يظهر أسفل الصفحة) -->
     <div id="google_translate_element" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;"></div>
 
     <div id="adblock-wall" class="adblock-wall hidden">
@@ -86,7 +79,6 @@
         </div>
     </div>
 
-    <!-- Ad Bait Elements — لكشف مانع الإعلانات -->
     <div id="ab-bait1" class="adBanner ads ad-banner adsbox adsbygoogle" style="position:fixed;top:-999px;left:-999px;width:300px;height:250px;pointer-events:none;"></div>
     <div id="ab-bait2" class="ad-placement ad_unit pub_300x250" style="position:fixed;top:-999px;left:-999px;width:300px;height:250px;pointer-events:none;"></div>
 
@@ -150,7 +142,6 @@
                     <button id="carousel-prev" class="carousel-btn" aria-label="السابق">&#9664;</button>
                     <button id="carousel-next" class="carousel-btn" aria-label="التالي">&#9654;</button>
                 </div>
-                <!-- ⚡ BUILD_INJECTION_POINT: games-grid (injected by build.js) -->
                 <div id="games-grid" class="games-grid"></div>
             </section>
             <aside class="ad-slot ad-sidebar-right"><span class="ad-label">إعلان</span></aside>
