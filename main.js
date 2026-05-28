@@ -301,8 +301,11 @@ function showGamePanel(game) {
 
 /* =============================================
    ADBLOCK — يعمل فقط عند الضغط على أزرار حساسة
+   + مراقبة دورية كل 10 ثوانٍ أثناء تشغيل اللعبة
    عناكب جوجل تتصفح بحرية كاملة ✅
    ============================================= */
+
+let _adWatcherInterval = null; // مؤقت المراقبة الدورية
 
 async function checkAdBlock() {
     // طريقة 1: فحص عناصر الـ bait في DOM
@@ -324,9 +327,43 @@ async function checkAdBlock() {
             'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
             { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }
         );
-        return false; // نجح الطلب — لا يوجد مانع
+        return false;
     } catch (e) {
-        return true;  // فشل الطلب — يوجد مانع
+        return true;
+    }
+}
+
+// ── تشغيل المراقبة الدورية (يُستدعى عند بدء اللعبة) ──
+function startAdWatcher() {
+    stopAdWatcher(); // أوقف أي مراقبة سابقة أولاً
+    _adWatcherInterval = setInterval(async () => {
+        const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
+        if (isBot) return;
+
+        const blocked = await checkAdBlock();
+        if (blocked) {
+            stopAdWatcher();
+            // أغلق اللعبة وأظهر الجدار
+            const closeBtn = document.getElementById('close-btn');
+            if (closeBtn) closeBtn.click(); // أغلق player
+            const wall = document.getElementById('adblock-wall');
+            if (!wall) return;
+            wall.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            const oldBtn = document.getElementById('adblock-continue-btn');
+            const newBtn = oldBtn.cloneNode(true);
+            oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+            newBtn.addEventListener('click', () => location.reload());
+        }
+    }, 10000); // كل 10 ثوانٍ
+}
+
+// ── إيقاف المراقبة (عند إغلاق اللعبة) ──
+function stopAdWatcher() {
+    if (_adWatcherInterval) {
+        clearInterval(_adWatcherInterval);
+        _adWatcherInterval = null;
     }
 }
 
@@ -346,15 +383,10 @@ async function showAdBlockWall(onPass) {
     wall.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // استبدال الزر لتجنب تراكم المستمعين
     const oldBtn = document.getElementById('adblock-continue-btn');
     const newBtn = oldBtn.cloneNode(true);
     oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-
-    newBtn.addEventListener('click', () => {
-        // أعد تحميل الصفحة — الحل الأضمن لضمان فحص نظيف
-        location.reload();
-    });
+    newBtn.addEventListener('click', () => location.reload());
 }
 
 function initDownloadBtns() {
@@ -944,17 +976,20 @@ function openGame(game) {
 
         // ── عرض أزرار التحكم بعد تحميل اللعبة ──
         if (isMobile && game.controls) {
-            // تأخير بسيط لضمان ظهور الأزرار فوق اللعبة
             setTimeout(() => {
                 document.getElementById('smart-controls-wrapper')?.remove();
                 renderSmartControls(game.id, game.controls, player);
             }, 400);
         }
+
+        // ── بدء المراقبة الدورية للإعلانات ──
+        startAdWatcher();
     };
 
     overlay.onclick = () => showPixelLoadingBar(launchGame);
 
     closeBtn.onclick = () => {
+        stopAdWatcher(); // ← إيقاف المراقبة عند إغلاق اللعبة
         player.classList.add('hidden');
         canvas.innerHTML              = '';
         canvas.style.overflow         = '';
