@@ -1345,8 +1345,7 @@ body {
 }
 
 /* =============================================
-   GOOGLE TRANSLATE — إخفاء الشريط بعد 10 ثوانٍ
-   مع الحفاظ على التصميم البيكسلي
+   GOOGLE TRANSLATE — OVERRIDES (NO POPUPS)
    ============================================= */
 
 /* عنصر الترجمة أسفل الصفحة */
@@ -1363,29 +1362,37 @@ body {
     z-index: 99999;
 }
 
-/* إخفاء الشريط */
-#google_translate_element.gt-hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(100%);
-}
-
-/* إخفاء البانر العلوي الخاص بـ Google Translate */
+/* إخفاء الشريط العلوي الخاص بـ Google Translate بشكل قاطع */
 .goog-te-banner-frame,
-.skiptranslate {
-    transition: opacity 0.8s ease !important;
-}
-
-.goog-te-banner-frame.gt-hidden,
-.skiptranslate.gt-hidden {
+.skiptranslate.goog-te-banner-frame {
+    display: none !important;
     opacity: 0 !important;
     pointer-events: none !important;
 }
 
-/* إزالة المساحة الفارغة التي يضيفها Google Translate */
+/* إزالة المساحة الفارغة التي يضيفها الشريط العلوي المزعج */
 body {
     top: 0 !important;
     position: static !important;
+}
+
+/* 
+ * إخفاء نافذة "النص الأصلي" (التي تظهر في الوسط عند اللمس) بشكل نهائي 
+ * بدلاً من إخفائها بعد 10 ثوان تم تدميرها لأنها تفسد تجربة اللعب عند النقر
+ */
+#goog-gt-tt, 
+.goog-te-balloon-frame,
+div#goog-gt-tt {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* منع تظليل النص باللون الأصفر عند الترجمة */
+.goog-text-highlight {
+    background-color: transparent !important;
+    box-shadow: none !important;
 }
 
 /* تحسين مظهر عناصر الترجمة لتتناسب مع التصميم */

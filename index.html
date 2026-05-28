@@ -11,6 +11,7 @@
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://nostagames.vercel.app/">
 
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nostagames.vercel.app/">
     <meta property="og:title" content="NostGames - عصر الفلاش الذهبي عاد! 🕹️">
@@ -22,6 +23,7 @@
     <meta name="twitter:description" content="العب 30+ لعبة Flash مجاناً على أندرويد">
     <meta name="twitter:image" content="https://nostagames.vercel.app/images/icon.png">
 
+    <!-- Schema الأساسي للتطبيق - ثابت دائماً -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -37,6 +39,9 @@
     }
     </script>
 
+    <!-- ⚡ BUILD_INJECTION_POINT: server-games-db (injected by build.js) -->
+    <!-- ⚡ BUILD_INJECTION_POINT: server-games-schema (injected by build.js) -->
+
     <link rel="icon" type="image/png" href="images/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,6 +50,7 @@
     <style class="adBanner" id="adStyleBait">.adBanner-check{display:block;height:1px;}</style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8579682743838923" crossorigin="anonymous"></script>
 
+    <!-- Google Translate Widget -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
@@ -59,6 +65,7 @@
 </head>
 <body>
 
+    <!-- Google Translate Element (يظهر أسفل الصفحة) -->
     <div id="google_translate_element" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;"></div>
 
     <div id="adblock-wall" class="adblock-wall hidden">
@@ -79,6 +86,7 @@
         </div>
     </div>
 
+    <!-- Ad Bait Elements — لكشف مانع الإعلانات -->
     <div id="ab-bait1" class="adBanner ads ad-banner adsbox adsbygoogle" style="position:fixed;top:-999px;left:-999px;width:300px;height:250px;pointer-events:none;"></div>
     <div id="ab-bait2" class="ad-placement ad_unit pub_300x250" style="position:fixed;top:-999px;left:-999px;width:300px;height:250px;pointer-events:none;"></div>
 
@@ -99,7 +107,7 @@
             <div class="app-banner-content">
                 <img src="images/icon.png" alt="NostGames" class="banner-icon" onerror="this.style.display='none'">
                 <div class="banner-text">
-                    <strong>📱 تطبيق NostGames للأندرويد متاح الآن!</strong>
+                    <strong>📱 تطبيق <span class="notranslate">NostGames</span> للأندرويد متاح الآن!</strong>
                     <span>العب بدون إنترنت · تحكم لمسي · مجاني 100%</span>
                 </div>
                 <a href="#" id="banner-download-btn" class="banner-btn"><i class="fa-solid fa-download"></i> تحميل مجاني</a>
@@ -113,7 +121,7 @@
             <div class="hero-content">
                 <img src="images/icon.png" alt="NostGames Logo" class="hero-logo" onerror="this.style.display='none'">
                 <div class="hero-text">
-                    <h1 class="glitch-title" data-text="NOSTAGAMES">NOSTAGAMES</h1>
+                    <h1 class="glitch-title" data-text="NOSTAGAMES"><span class="notranslate">NOSTAGAMES</span></h1>
                     <p class="hero-tagline">⚡ عصر الفلاش الذهبي عاد! ⚡</p>
                     <p class="hero-sub">العب 30+ لعبة كلاسيكية مباشرة على هاتفك الأندرويد</p>
                     <div class="android-cta">
@@ -142,6 +150,7 @@
                     <button id="carousel-prev" class="carousel-btn" aria-label="السابق">&#9664;</button>
                     <button id="carousel-next" class="carousel-btn" aria-label="التالي">&#9654;</button>
                 </div>
+                <!-- ⚡ BUILD_INJECTION_POINT: games-grid (injected by build.js) -->
                 <div id="games-grid" class="games-grid"></div>
             </section>
             <aside class="ad-slot ad-sidebar-right"><span class="ad-label">إعلان</span></aside>
@@ -166,7 +175,7 @@
         <section class="android-section reveal">
             <div class="android-section-content">
                 <div class="android-info">
-                    <h2>📱 حمّل تطبيق NostGames للأندرويد</h2>
+                    <h2>📱 حمّل تطبيق <span class="notranslate">NostGames</span> للأندرويد</h2>
                     <p>استمتع بتجربة ألعاب Flash الكلاسيكية على هاتفك بميزات حصرية!</p>
                     <ul class="android-features">
                         <li><i class="fa-solid fa-check"></i> تشغيل بدون إنترنت</li>
@@ -203,7 +212,7 @@
         <div class="ad-slot ad-bottom"><span class="ad-label">إعلان</span></div>
 
         <footer class="site-footer">
-            <p>© 2025 NostGames · جميع الحقوق محفوظة</p>
+            <p>© 2025 <span class="notranslate">NostGames</span> · جميع الحقوق محفوظة</p>
             <div class="footer-links">
                 <a href="#" id="about-us-link">من نحن</a> |
                 <a href="privacy.html">سياسة الخصوصية</a> |
@@ -218,7 +227,7 @@
         <div class="about-content">
             <button class="about-close">&times;</button>
             <h2>📖 من نحن؟</h2>
-            <p>NostGames هو مشروع عربي يهدف إلى إحياء ألعاب Flash الكلاسيكية التي شكلت طفولتنا. نقدم أكثر من 30 لعبة أسطورية مثل Fireboy and Watergirl، Papa's Games، Hobo، Jacksmith وغيرها.</p>
+            <p><span class="notranslate">NostGames</span> هو مشروع عربي يهدف إلى إحياء ألعاب Flash الكلاسيكية التي شكلت طفولتنا. نقدم أكثر من 30 لعبة أسطورية مثل Fireboy and Watergirl، Papa's Games، Hobo، Jacksmith وغيرها.</p>
             <p>نؤمن بأن الألعاب القديمة تستحق أن تبقى حية، ونسعى لجعلها متاحة للجميع بدون تعقيد. فريقنا صغير لكن شغفه كبير، وكل الدعم من الإعلانات يساعدنا على الاستمرار.</p>
             <p>شكراً لكونك جزءاً من رحلة الحنين هذه! 🎮</p>
         </div>
