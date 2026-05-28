@@ -1343,3 +1343,93 @@ body {
         padding: 3px 5px !important;
     }
 }
+
+/* =============================================
+   GOOGLE TRANSLATE — إخفاء الشريط بعد 10 ثوانٍ
+   مع الحفاظ على التصميم البيكسلي
+   ============================================= */
+
+/* عنصر الترجمة أسفل الصفحة */
+#google_translate_element {
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.65rem;
+    background: rgba(0, 0, 0, 0.75);
+    border-top: 2px solid #0f0;
+    box-shadow: 0 -4px 20px rgba(0, 255, 0, 0.15);
+    padding: 6px 12px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    z-index: 99999;
+}
+
+/* إخفاء الشريط */
+#google_translate_element.gt-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(100%);
+}
+
+/* إخفاء البانر العلوي الخاص بـ Google Translate */
+.goog-te-banner-frame,
+.skiptranslate {
+    transition: opacity 0.8s ease !important;
+}
+
+.goog-te-banner-frame.gt-hidden,
+.skiptranslate.gt-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* إزالة المساحة الفارغة التي يضيفها Google Translate */
+body {
+    top: 0 !important;
+    position: static !important;
+}
+
+/* تحسين مظهر عناصر الترجمة لتتناسب مع التصميم */
+.goog-te-menu-value,
+.goog-te-menu2,
+.goog-te-menu-value span {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 0.6rem !important;
+    background: transparent !important;
+    color: #0f0 !important;
+    border: 1px solid #0f0 !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+}
+
+.goog-te-gadget-simple {
+    background: rgba(0,0,0,0.6) !important;
+    border: 1px solid #0f0 !important;
+    border-radius: 4px !important;
+    padding: 4px !important;
+}
+
+.goog-te-gadget-simple img {
+    display: none !important;
+}
+
+/* إشعار تغيير اللغة — تصميم بيكسلي */
+#lang-toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: #0f0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 10px 20px;
+    border: 2px solid #0f0;
+    box-shadow: 0 0 10px rgba(0,255,0,0.3);
+    z-index: 99998;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    text-align: center;
+    border-radius: 0;
+}

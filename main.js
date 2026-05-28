@@ -34,6 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initShare();
     initSecretCode();
     initBackToTop();
+    initGoogleTranslate();   // ← إضافة Google Translate Toast والإخفاء
+    
+    // ── إضافة AdBlock watcher والتفاعل الأول ──
+    startAdWatcher();
+    initFirstInteractionCheck();
 
     // ==============================
     // الترطيب الأولي (Initial Hydration)
@@ -301,11 +306,114 @@ function showGamePanel(game) {
 
 /* =============================================
    ADBLOCK — يعمل فقط عند الضغط على أزرار حساسة
-   + مراقبة دورية كل 10 ثوانٍ أثناء تشغيل اللعبة
    عناكب جوجل تتصفح بحرية كاملة ✅
    ============================================= */
 
-let _adWatcherInterval = null; // مؤقت المراقبة الدورية
+// ── كائن الترجمات (20 لغة) ──
+const AB_LANGS = {
+    ar: { title: "⚠️ تم اكتشاف مانع الإعلانات", body: "الإعلانات هي المصدر الوحيد لاستمرار الموقع مجاناً. يرجى تعطيل مانع الإعلانات للمتابعة.", note: "* الموقع مجاني 100%، الإعلانات فقط لدعم التطوير", btn: "✅ عطّلته، متابعة", steps: ["1. افتح إضافة AdBlock", "2. اختر 'تعطيل في هذا الموقع'", "3. اضغط زر المتابعة"] },
+    en: { title: "⚠️ AdBlock Detected", body: "Ads are the only way to keep this site free. Please disable your ad blocker to continue.", note: "* This site is 100% free, ads only support development", btn: "✅ Disabled, Continue", steps: ["1. Open AdBlock extension", "2. Choose 'Disable on this site'", "3. Click continue button"] },
+    fr: { title: "⚠️ Bloqueur de pub détecté", body: "Les publicités sont le seul moyen de maintenir ce site gratuit. Veuillez désactiver votre bloqueur.", note: "* Site 100% gratuit, pubs pour le développement", btn: "✅ Désactivé, Continuer", steps: ["1. Ouvrez AdBlock", "2. 'Désactiver sur ce site'", "3. Cliquez Continuer"] },
+    es: { title: "⚠️ Bloqueador de anuncios detectado", body: "Los anuncios son la única forma de mantener este sitio gratis. Desactiva tu bloqueador.", note: "* Sitio 100% gratis, anuncios solo para desarrollo", btn: "✅ Desactivado, Continuar", steps: ["1. Abre AdBlock", "2. 'Desactivar en este sitio'", "3. Haz clic en Continuar"] },
+    de: { title: "⚠️ AdBlock erkannt", body: "Werbung ist der einzige Weg, diese Seite kostenlos zu halten. Bitte deaktiviere deinen AdBlocker.", note: "* Seite 100% kostenlos, Werbung nur für Entwicklung", btn: "✅ Deaktiviert, Weiter", steps: ["1. Öffne AdBlock", "2. 'Auf dieser Seite deaktivieren'", "3. Klicke auf Weiter"] },
+    it: { title: "⚠️ Blocco annunci rilevato", body: "Gli annunci sono l'unico modo per mantenere gratuito questo sito. Disabilita il blocco annunci.", note: "* Sito 100% gratuito, annunci solo per sviluppo", btn: "✅ Disabilitato, Continua", steps: ["1. Apri AdBlock", "2. 'Disabilita su questo sito'", "3. Clicca Continua"] },
+    pt: { title: "⚠️ Bloqueador de anúncios detectado", body: "Os anúncios são a única forma de manter este site gratuito. Desative seu bloqueador.", note: "* Site 100% gratuito, anúncios apenas para desenvolvimento", btn: "✅ Desativado, Continuar", steps: ["1. Abra o AdBlock", "2. 'Desativar neste site'", "3. Clique em Continuar"] },
+    ru: { title: "⚠️ Обнаружен блокировщик рекламы", body: "Реклама — единственный способ поддерживать сайт бесплатным. Отключите блокировщик.", note: "* Сайт полностью бесплатен, реклама только для развития", btn: "✅ Отключено, Продолжить", steps: ["1. Откройте AdBlock", "2. 'Отключить на этом сайте'", "3. Нажмите Продолжить"] },
+    zh: { title: "⚠️ 检测到广告拦截器", body: "广告是保持本网站免费的唯一方式。请禁用您的广告拦截器。", note: "* 本网站100%免费，广告仅用于支持开发", btn: "✅ 已禁用，继续", steps: ["1. 打开AdBlock扩展", "2. 选择'在此网站上禁用'", "3. 点击继续按钮"] },
+    ja: { title: "⚠️ 広告ブロッカーを検出しました", body: "広告はこのサイトを無料で維持する唯一の方法です。広告ブロッカーを無効にしてください。", note: "* このサイトは100%無料です。広告は開発支援のためです", btn: "✅ 無効にしました、続行", steps: ["1. AdBlockを開く", "2. 'このサイトで無効にする'を選択", "3. 続行ボタンをクリック"] },
+    ko: { title: "⚠️ 광고 차단기 감지됨", body: "광고는 이 사이트를 무료로 유지하는 유일한 방법입니다. 광고 차단기를 비활성화하세요.", note: "* 이 사이트는 100% 무료입니다. 광고는 개발 지원용입니다", btn: "✅ 비활성화됨, 계속", steps: ["1. AdBlock 열기", "2. '이 사이트에서 비활성화' 선택", "3. 계속 버튼 클릭"] },
+    hi: { title: "⚠️ विज्ञापन अवरोधक का पता चला", body: "विज्ञापन इस साइट को मुफ्त रखने का एकमात्र तरीका है। कृपया अपना अवरोधक अक्षम करें।", note: "* साइट 100% मुफ्त है, विज्ञापन केवल विकास के लिए", btn: "✅ अक्षम किया, जारी रखें", steps: ["1. AdBlock खोलें", "2. 'इस साइट पर अक्षम करें' चुनें", "3. जारी रखें बटन दबाएं"] },
+    tr: { title: "⚠️ Reklam Engelleyici Algılandı", body: "Reklamlar, bu sitenin ücretsiz kalmasının tek yoludur. Lütfen reklam engelleyicinizi devre dışı bırakın.", note: "* Site %100 ücretsizdir, reklamlar sadece geliştirme içindir", btn: "✅ Devre Dışı, Devam Et", steps: ["1. AdBlock'u açın", "2. 'Bu sitede devre dışı bırak' seçin", "3. Devam Et düğmesine tıklayın"] },
+    nl: { title: "⚠️ AdBlock gedetecteerd", body: "Advertenties zijn de enige manier om deze site gratis te houden. Schakel uw adblocker uit.", note: "* Site 100% gratis, advertenties alleen voor ontwikkeling", btn: "✅ Uitgeschakeld, Doorgaan", steps: ["1. Open AdBlock", "2. Kies 'Uitschakelen op deze site'", "3. Klik op Doorgaan"] },
+    sv: { title: "⚠️ AdBlock upptäckt", body: "Annonser är det enda sättet att hålla denna sida gratis. Vänligen inaktivera din annonsblockerare.", note: "* Webbplatsen är 100% gratis, annonser endast för utveckling", btn: "✅ Inaktiverad, Fortsätt", steps: ["1. Öppna AdBlock", "2. Välj 'Inaktivera på denna webbplats'", "3. Klicka på Fortsätt"] },
+    pl: { title: "⚠️ Wykryto blokowanie reklam", body: "Reklamy są jedynym sposobem na utrzymanie tej strony za darmo. Wyłącz blokowanie reklam.", note: "* Strona jest w 100% darmowa, reklamy tylko dla rozwoju", btn: "✅ Wyłączono, Kontynuuj", steps: ["1. Otwórz AdBlock", "2. Wybierz 'Wyłącz na tej stronie'", "3. Kliknij Kontynuuj"] },
+    uk: { title: "⚠️ Виявлено блокувальник реклами", body: "Реклама — єдиний спосіб підтримувати сайт безкоштовним. Вимкніть блокувальник.", note: "* Сайт 100% безкоштовний, реклама тільки для розвитку", btn: "✅ Вимкнено, Продовжити", steps: ["1. Відкрийте AdBlock", "2. 'Вимкнути на цьому сайті'", "3. Натисніть Продовжити"] },
+    vi: { title: "⚠️ Phát hiện chặn quảng cáo", body: "Quảng cáo là cách duy nhất để giữ trang web này miễn phí. Vui lòng tắt trình chặn quảng cáo.", note: "* Trang web 100% miễn phí, quảng cáo chỉ hỗ trợ phát triển", btn: "✅ Đã tắt, Tiếp tục", steps: ["1. Mở AdBlock", "2. Chọn 'Tắt trên trang này'", "3. Nhấn nút Tiếp tục"] },
+    th: { title: "⚠️ ตรวจพบโปรแกรมบล็อกโฆษณา", body: "โฆษณาเป็นวิธีเดียวที่จะทำให้เว็บไซต์นี้ฟรี กรุณาปิดโปรแกรมบล็อกโฆษณา", note: "* เว็บไซต์ฟรี 100% โฆษณาเพื่อสนับสนุนการพัฒนา", btn: "✅ ปิดแล้ว, ดำเนินการต่อ", steps: ["1. เปิด AdBlock", "2. เลือก 'ปิดใช้งานบนเว็บไซต์นี้'", "3. คลิกปุ่มดำเนินการต่อ"] }
+};
+
+let _adWatcherInterval = null;
+
+function stopAdWatcher() {
+    if (_adWatcherInterval) {
+        clearInterval(_adWatcherInterval);
+        _adWatcherInterval = null;
+    }
+}
+
+function startAdWatcher() {
+    stopAdWatcher();
+    _adWatcherInterval = setInterval(async () => {
+        const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider/i.test(navigator.userAgent);
+        if (isBot) return;
+        if (await checkAdBlock()) { 
+            stopAdWatcher(); 
+            showAdWallUI(); 
+        }
+    }, 20000); // كل 20 ثانية
+}
+
+// ── تحديد لغة المستخدم ──
+function detectLang() {
+    const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    return AB_LANGS[lang] ? lang : 'en';
+}
+
+// ── تحديث نصوص الجدار حسب اللغة ──
+function localizeAdWall() {
+    const t    = AB_LANGS[detectLang()];
+    const wall = document.getElementById('adblock-wall');
+    if (!wall || !t) return;
+    const titleEl = wall.querySelector('h2');
+    const bodyEl  = wall.querySelector('p');
+    const noteEl  = wall.querySelector('.adblock-note');
+    const btnEl   = document.getElementById('adblock-continue-btn');
+    const steps   = wall.querySelectorAll('.step');
+    if (titleEl) titleEl.textContent = t.title;
+    if (bodyEl)  bodyEl.textContent  = t.body;
+    if (noteEl)  noteEl.textContent  = t.note;
+    if (btnEl)   btnEl.textContent   = t.btn;
+    steps.forEach((s, i) => {
+        if (!t.steps[i]) return;
+        const num = s.querySelector('span');
+        s.textContent = t.steps[i];
+        if (num) s.prepend(num);
+    });
+    const rtl = ['ar','fa','ur'];
+    wall.style.direction = rtl.includes(detectLang()) ? 'rtl' : 'ltr';
+}
+
+// ── عرض جدار AdBlock ──
+function showAdWallUI() {
+    localizeAdWall();
+    const wall = document.getElementById('adblock-wall');
+    if (!wall) return;
+    wall.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const player = document.getElementById('game-player');
+    if (player && !player.classList.contains('hidden')) {
+        document.getElementById('close-btn')?.click();
+    }
+    const oldBtn = document.getElementById('adblock-continue-btn');
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener('click', () => location.reload());
+}
+
+// ── الكشف عند أول تفاعل فقط ──
+function initFirstInteractionCheck() {
+    const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider/i.test(navigator.userAgent);
+    if (isBot) return;
+    const onInteract = async () => {
+        ['scroll','click','touchstart','keydown'].forEach(ev =>
+            document.removeEventListener(ev, onInteract, { passive: true })
+        );
+        if (await checkAdBlock()) { stopAdWatcher(); showAdWallUI(); }
+    };
+    ['scroll','click','touchstart','keydown'].forEach(ev =>
+        document.addEventListener(ev, onInteract, { passive: true })
+    );
+}
 
 async function checkAdBlock() {
     // طريقة 1: فحص عناصر الـ bait في DOM
@@ -327,43 +435,9 @@ async function checkAdBlock() {
             'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
             { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }
         );
-        return false;
+        return false; // نجح الطلب — لا يوجد مانع
     } catch (e) {
-        return true;
-    }
-}
-
-// ── تشغيل المراقبة الدورية (يُستدعى عند بدء اللعبة) ──
-function startAdWatcher() {
-    stopAdWatcher(); // أوقف أي مراقبة سابقة أولاً
-    _adWatcherInterval = setInterval(async () => {
-        const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|facebot|ia_archiver/i.test(navigator.userAgent);
-        if (isBot) return;
-
-        const blocked = await checkAdBlock();
-        if (blocked) {
-            stopAdWatcher();
-            // أغلق اللعبة وأظهر الجدار
-            const closeBtn = document.getElementById('close-btn');
-            if (closeBtn) closeBtn.click(); // أغلق player
-            const wall = document.getElementById('adblock-wall');
-            if (!wall) return;
-            wall.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-
-            const oldBtn = document.getElementById('adblock-continue-btn');
-            const newBtn = oldBtn.cloneNode(true);
-            oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-            newBtn.addEventListener('click', () => location.reload());
-        }
-    }, 10000); // كل 10 ثوانٍ
-}
-
-// ── إيقاف المراقبة (عند إغلاق اللعبة) ──
-function stopAdWatcher() {
-    if (_adWatcherInterval) {
-        clearInterval(_adWatcherInterval);
-        _adWatcherInterval = null;
+        return true;  // فشل الطلب — يوجد مانع
     }
 }
 
@@ -377,16 +451,8 @@ async function showAdBlockWall(onPass) {
     if (!blocked) { onPass(); return; }
 
     // يوجد مانع — أظهر الجدار
-    const wall = document.getElementById('adblock-wall');
-    if (!wall) { onPass(); return; }
-
-    wall.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-
-    const oldBtn = document.getElementById('adblock-continue-btn');
-    const newBtn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-    newBtn.addEventListener('click', () => location.reload());
+    showAdWallUI();
+    // لا نستدعي onPass() لأننا منعنا الوصول
 }
 
 function initDownloadBtns() {
@@ -510,6 +576,63 @@ function initBackToTop() {
     if (!btn) return;
     window.addEventListener('scroll', () => { btn.style.display = window.scrollY > 500 ? 'flex' : 'none'; });
     btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
+
+function initGoogleTranslate() {
+    // إشعار تغيير اللغة
+    const userLang = (navigator.language || 'ar').split('-')[0].toLowerCase();
+    const langNames = {
+        en:'🇺🇸 English', fr:'🇫🇷 Français', es:'🇪🇸 Español',
+        de:'🇩🇪 Deutsch', tr:'🇹🇷 Türkçe', id:'🇮🇩 Indonesia',
+        pt:'🇧🇷 Português', ru:'🇷🇺 Русский', zh:'🇨🇳 中文',
+        ja:'🇯🇵 日本語', ko:'🇰🇷 한국어', hi:'🇮🇳 हिन्दी',
+        fa:'🇮🇷 فارسی', ur:'🇵🇰 اردو', ms:'🇲🇾 Melayu',
+        it:'🇮🇹 Italiano', nl:'🇳🇱 Nederlands', th:'🇹🇭 ไทย',
+        vi:'🇻🇳 Tiếng Việt'
+    };
+
+    // لا نعرض الإشعار إذا كانت اللغة العربية
+    if (userLang === 'ar') return;
+
+    const langName = langNames[userLang];
+    if (!langName) return;
+
+    // إشعار بتصميم بيكسلي
+    const toast = document.createElement('div');
+    toast.id = 'lang-toast';
+    toast.textContent = `🌐 تم تغيير اللغة إلى ${langName}`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #000;
+        color: #0f0;
+        font-family: 'Press Start 2P', monospace;
+        font-size: 11px;
+        padding: 10px 20px;
+        border: 2px solid #0f0;
+        box-shadow: 0 0 10px rgba(0,255,0,0.3);
+        z-index: 99998;
+        white-space: nowrap;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+        text-align: center;
+    `;
+    document.body.appendChild(toast);
+
+    // إخفاء الإشعار بعد 4 ثوانٍ
+    setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+    setTimeout(() => { toast.remove(); }, 4500);
+
+    // إخفاء شريط Google Translate بعد 10 ثوانٍ
+    setTimeout(() => {
+        const el = document.getElementById('google_translate_element');
+        if (el) el.classList.add('gt-hidden');
+        document.querySelectorAll('.goog-te-banner-frame, .skiptranslate')
+            .forEach(el => el.classList.add('gt-hidden'));
+    }, 10000);
 }
 
 function showPixelLoadingBar(onComplete) {
@@ -976,20 +1099,17 @@ function openGame(game) {
 
         // ── عرض أزرار التحكم بعد تحميل اللعبة ──
         if (isMobile && game.controls) {
+            // تأخير بسيط لضمان ظهور الأزرار فوق اللعبة
             setTimeout(() => {
                 document.getElementById('smart-controls-wrapper')?.remove();
                 renderSmartControls(game.id, game.controls, player);
             }, 400);
         }
-
-        // ── بدء المراقبة الدورية للإعلانات ──
-        startAdWatcher();
     };
 
     overlay.onclick = () => showPixelLoadingBar(launchGame);
 
     closeBtn.onclick = () => {
-        stopAdWatcher(); // ← إيقاف المراقبة عند إغلاق اللعبة
         player.classList.add('hidden');
         canvas.innerHTML              = '';
         canvas.style.overflow         = '';
