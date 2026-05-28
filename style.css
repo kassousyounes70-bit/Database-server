@@ -1440,3 +1440,44 @@ div#goog-gt-tt {
     text-align: center;
     border-radius: 0;
 }
+
+/* =============================================
+   التدمير الشامل لنوافذ وشريط جوجل للترجمة (إضافي)
+   ============================================= */
+
+/* إخفاء شريط الترجمة العلوي نهائياً */
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* إرجاع الصفحة لوضعها الطبيعي وإلغاء الفراغ العلوي */
+body {
+    top: 0 !important;
+    position: static !important;
+}
+
+/* إخفاء نافذة "النص الأصلي" العائمة بشكل قاطع (شامل جميع كلاسات جوجل الجديدة والقديمة) */
+#goog-gt-tt, 
+.goog-te-balloon-frame,
+div[id^="goog-gt-"],
+.VIpgJd-yAWNEb-hvhgNd {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    z-index: -99999 !important;
+}
+
+/* إزالة التظليل الأصفر المزعج عند لمس النص المترجم */
+.goog-text-highlight {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
